@@ -1,23 +1,15 @@
+import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url'
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  },
+  plugins: [sveltekit()],
   server: {
-    port: 3000,
-    open: true,
+    port: 3001,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path: string) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }
