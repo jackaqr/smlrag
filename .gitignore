@@ -1,6 +1,10 @@
 # 环境变量文件
 .env
 
+# 数据目录
+data/*
+!data/.gitkeep
+
 # Python
 __pycache__/
 *.py[cod]
