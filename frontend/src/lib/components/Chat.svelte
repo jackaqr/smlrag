@@ -154,7 +154,7 @@
   }
 
   .welcome p {
-    color: rgba(0, 0, 0, 1);
+    color: rgb(189, 46, 46);
     font-size: 1rem;
   }
 
