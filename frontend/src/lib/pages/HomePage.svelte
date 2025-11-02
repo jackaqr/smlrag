@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Counter from '$lib/components/Counter.svelte'
+  import Chat from '$lib/components/Chat.svelte'
 </script>
 
 <svelte:head>
   <title>对话框</title>
 </svelte:head>
 
-<Counter />
+<Chat />
 
