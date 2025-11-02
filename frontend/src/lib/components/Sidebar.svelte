@@ -12,6 +12,12 @@
   // 批量选择相关状态
   let isEditMode = $state(false)
   let selectedChatIds = $state<Set<string>>(new Set())
+  
+  // 侧边栏宽度调整
+  let sidebarWidth = $state(260)
+  let isResizing = $state(false)
+  const MIN_WIDTH = 200
+  const MAX_WIDTH = 500
 
   // 加载对话列表
   async function loadChats() {
@@ -141,13 +147,48 @@
     }
   }
 
+  // 开始调整宽度
+  function startResize(e: MouseEvent) {
+    isResizing = true
+    document.body.classList.add('resizing')
+    e.preventDefault()
+  }
+
+  // 调整宽度
+  function resize(e: MouseEvent) {
+    if (!isResizing) return
+    
+    const newWidth = e.clientX
+    if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+      sidebarWidth = newWidth
+    }
+  }
+
+  // 停止调整
+  function stopResize() {
+    if (isResizing) {
+      isResizing = false
+      document.body.classList.remove('resizing')
+    }
+  }
+
   // 组件挂载时加载数据
   onMount(() => {
     loadChats()
+    
+    // 添加全局事件监听
+    window.addEventListener('mousemove', resize)
+    window.addEventListener('mouseup', stopResize)
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResize)
+    }
   })
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" style="width: {sidebarWidth}px">
   <div class="sidebar-header">
     <h2>Smlrag</h2>
     
@@ -242,17 +283,30 @@
       <span class="username">用户</span>
     </div>
   </div>
+  
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <div 
+    class="resize-handle" 
+    class:resizing={isResizing}
+    onmousedown={startResize}
+    role="separator"
+    tabindex="0"
+    aria-label="调整侧边栏宽度"
+    aria-orientation="vertical"
+  ></div>
 </aside>
 
 <style>
   .sidebar {
-    width: 260px;
     height: 100vh;
     background: rgba(255, 255, 255, 0.03);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
   }
 
   .sidebar-header {
@@ -533,6 +587,37 @@
     font-size: 0.85rem;
     margin-top: 0.5rem;
     opacity: 0.7;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.2s;
+    z-index: 10;
+  }
+
+  .resize-handle:hover,
+  .resize-handle.resizing {
+    background: rgba(255, 62, 0, 0.5);
+  }
+
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+  }
+
+  :global(body.resizing) {
+    cursor: col-resize;
+    user-select: none;
   }
 </style>
 
