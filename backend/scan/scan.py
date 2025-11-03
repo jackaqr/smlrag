@@ -1,17 +1,23 @@
 import os
 from pathlib import Path
-from upload import upload_file
+from .upload import upload_file
 import asyncio
 import time
 
-# 使用当前文件的上一级目录的data目录，用.parent
-input_folder = Path(__file__).parent / 'data'
+# 使用 backend 目录下的 data 目录
+input_folder = Path(__file__).parent.parent / 'data'
 
+print(f"扫描目录配置: {input_folder}")
 
 async def scan_folder():
     """扫描文件夹并上传所有文件"""
     print(f"开始扫描目录: {input_folder}")
     file_count = 0
+    
+    # 确保目录存在
+    if not input_folder.exists():
+        print(f"目录不存在，创建目录: {input_folder}")
+        input_folder.mkdir(parents=True, exist_ok=True)
     
     for file in input_folder.glob('**/*'):
         if file.is_file() and not file.name.startswith('.'):
@@ -38,11 +44,3 @@ async def watch_and_scan(interval=60):
         print(f"等待 {interval} 秒后进行下次扫描...")
         await asyncio.sleep(interval)
 
-
-if __name__ == "__main__":
-    # 运行一次扫描
-    # asyncio.run(scan_folder())
-    
-    # 持续监控模式（每60秒扫描一次）
-    print("启动文件扫描服务...")
-    asyncio.run(watch_and_scan(interval=60))

@@ -30,3 +30,4 @@ async def upload_file(file_path: Path):
             else:
                 error_text = await response.text()
                 raise Exception(f"上传失败 (HTTP {response.status}): {error_text}")
+

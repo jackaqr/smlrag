@@ -1,13 +1,16 @@
 """
 聊天后端服务 - FastAPI
+集成聊天管理和文件扫描功能
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from chat_history import chat_manager, Message, ChatMetadata
+from scan.scan import scan_folder
 
-app = FastAPI(title="Smlrag Chat API", version="1.0.0")
+app = FastAPI(title="Smlrag API", version="1.0.0")
 
 # CORS 配置 - 允许前端访问
 app.add_middleware(
@@ -52,7 +55,7 @@ class ChatMetadataResponse(BaseModel):
 @app.get("/")
 async def root():
     """健康检查"""
-    return {"status": "ok", "service": "Smlrag Chat API"}
+    return {"status": "ok", "service": "Smlrag API", "modules": ["chat", "scan"]}
 
 
 @app.get("/api/stats")
@@ -147,7 +150,26 @@ async def clear_all_data():
     return {"status": "ok", "message": "所有数据已清除"}
 
 
+# ========== 文件扫描 API ==========
+
+@app.post("/api/scan")
+async def scan_files():
+    """
+    扫描并上传 data 目录中的所有文件到 Dify
+    需要设置环境变量 DIFY_BASE_URL 和 DIFY_API_KEY
+    """
+    try:
+        file_count = await scan_folder()
+        return JSONResponse(content={
+            "status": "ok",
+            "message": "扫描完成",
+            "files_processed": file_count
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"扫描失败: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5301)
 

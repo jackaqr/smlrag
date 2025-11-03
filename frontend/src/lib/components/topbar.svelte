@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { currentView, type ViewType } from '$lib/stores/navigationStore';
+  import { page } from '$app/stores';
   
-  const navItems: { id: ViewType; label: string; icon: string }[] = [
-    { id: 'chat', label: '对话', icon: '💬' },
-    { id: 'documents', label: '文档', icon: '📚' },
-    { id: 'analytics', label: '分析', icon: '📊' },
-    { id: 'settings', label: '设置', icon: '⚙️' }
+  const navItems = [
+    { href: '/chat', label: '对话', icon: '💬' },
+    { href: '/documents', label: '文档', icon: '📚' },
+    { href: '/analytics', label: '分析', icon: '📊' },
+    { href: '/settings', label: '设置', icon: '⚙️' }
   ];
   
-  function setView(view: ViewType) {
-    currentView.set(view);
+  // 判断当前路由是否激活
+  function isActive(href: string): boolean {
+    return $page.url.pathname === href;
   }
 </script>
 
@@ -22,14 +23,14 @@
     
     <nav class="nav-buttons">
       {#each navItems as item}
-        <button
+        <a
+          href={item.href}
           class="nav-btn"
-          class:active={$currentView === item.id}
-          on:click={() => setView(item.id)}
+          class:active={isActive(item.href)}
         >
           <span class="nav-icon">{item.icon}</span>
           <span class="nav-label">{item.label}</span>
-        </button>
+        </a>
       {/each}
     </nav>
     
@@ -113,6 +114,7 @@
     transition: all 0.3s ease;
     font-size: 0.95rem;
     font-weight: 500;
+    text-decoration: none;
   }
   
   .nav-btn:hover {
