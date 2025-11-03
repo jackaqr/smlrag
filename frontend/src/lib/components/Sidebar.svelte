@@ -299,7 +299,7 @@
 
 <style>
   .sidebar {
-    height: 100vh;
+    height: 100%;
     background: rgba(255, 255, 255, 0.03);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
