@@ -1,23 +1,28 @@
 <script lang="ts">
-  import { scanFiles } from '$lib/api/dataset'
+  import { scanFiles, type ScanResult } from '$lib/api/dataset'
   
   let scanning = $state(false)
-  let result = $state<string>('')
+  let scanResult = $state<ScanResult | null>(null)
   let error = $state<string>('')
   
   async function handleScan() {
     scanning = true
     error = ''
-    result = ''
+    scanResult = null
     
     try {
-      const response = await scanFiles()
-      result = `扫描完成！处理了 ${response.files_processed} 个文件`
+      scanResult = await scanFiles()
     } catch (err) {
       error = err instanceof Error ? err.message : '扫描失败'
     } finally {
       scanning = false
     }
+  }
+  
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 </script>
 
@@ -45,11 +50,28 @@
       </button>
     </div>
     
-    {#if result}
+    {#if scanResult}
       <div class="result success">
         <span class="result-icon">✅</span>
-        {result}
+        扫描完成！找到 {scanResult.total_files} 个文件，总大小 {formatFileSize(scanResult.total_size)}
       </div>
+      
+      {#if scanResult.files.length > 0}
+        <div class="files-list">
+          <h3>📄 文件列表</h3>
+          <div class="files-grid">
+            {#each scanResult.files as file}
+              <div class="file-item">
+                <span class="file-icon">📄</span>
+                <div class="file-info">
+                  <div class="file-name">{file.name}</div>
+                  <div class="file-size">{formatFileSize(file.size)}</div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     {/if}
     
     {#if error}
@@ -194,6 +216,66 @@
   
   .result-icon {
     font-size: 1.5rem;
+  }
+  
+  .files-list {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .files-list h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #4ecdc4;
+  }
+  
+  .files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .file-item:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  .file-icon {
+    font-size: 1.5rem;
+  }
+  
+  .file-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .file-name {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .file-size {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.25rem;
   }
   
   .info-card {
