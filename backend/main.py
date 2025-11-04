@@ -155,16 +155,16 @@ async def clear_all_data():
 @app.post("/api/scan")
 async def scan_files():
     """
-    扫描并上传 data 目录中的所有文件到 Dify
-    需要设置环境变量 DIFY_BASE_URL 和 DIFY_API_KEY
+    扫描 data 目录中的所有文件
+    返回扫描结果的详细信息
     """
     try:
-        file_count = await scan_folder()
-        return JSONResponse(content={
+        result = await scan_folder()
+        return {
             "status": "ok",
             "message": "扫描完成",
-            "files_processed": file_count
-        })
+            **result.model_dump()  # Pydantic 模型转为字典
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"扫描失败: {str(e)}")
 
