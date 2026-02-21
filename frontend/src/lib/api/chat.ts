@@ -105,6 +105,26 @@ export async function addVideoResult(
 }
 
 /**
+ * 将图片生成结果写入对话历史（路径：/chats/messages/{chatId}/image-result）
+ */
+export async function addImageResult(
+  chatId: string,
+  userContent: string,
+  imageUrl: string
+): Promise<Message> {
+  const response = await fetch(
+    `${API_BASE_URL}/chats/messages/${chatId}/image-result`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_content: userContent, image_url: imageUrl })
+    }
+  )
+  if (!response.ok) throw new Error('写入图片结果失败')
+  return response.json()
+}
+
+/**
  * 更新对话标题
  */
 export async function updateChatTitle(chatId: string, title: string): Promise<void> {

@@ -19,7 +19,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--bg-surface);
+    color: var(--text-muted);
   }
 </style>

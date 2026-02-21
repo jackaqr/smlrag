@@ -40,6 +40,11 @@ class Settings:
         self.video_api_url = os.getenv("VIDEO_API_URL", default_video_api_url).rstrip("/")
         self.video_model = os.getenv("VIDEO_MODEL", "即梦视频生成 3.0 Pro")
 
+        # 图片生成 API（与 video 接口方式一致，参数平铺转发）
+        default_image_api_url = f"{OPENAI_BASE_URL.rstrip('/')}/images/generations"
+        self.image_api_url = os.getenv("IMAGE_API_URL", default_image_api_url).rstrip("/")
+        self.image_model = os.getenv("IMAGE_MODEL", "Doubao-Seedream-4.5")
+
         # 各模态支持的模型：文本生成 / 图片生成 / 视频生成
         self.modality_models: Dict[str, List[str]] = {
             "text": _parse_model_list(os.getenv("MODELS_TEXT", "GLM-5")),

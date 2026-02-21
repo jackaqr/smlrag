@@ -45,15 +45,17 @@
 <style>
   .topbar {
     width: 100%;
-    height: 60px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    height: 56px;
+    background: var(--gradient-bar);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
     z-index: 1000;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
-  
+
   .topbar-content {
     max-width: 100%;
     height: 100%;
@@ -62,130 +64,121 @@
     justify-content: space-between;
     padding: 0 1.5rem;
   }
-  
+
   .logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
     font-weight: 700;
-    font-size: 1.25rem;
-    color: #fff;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
     user-select: none;
   }
-  
+
   .logo-icon {
-    font-size: 1.5rem;
-    animation: pulse 2s ease-in-out infinite;
+    font-size: 1.4rem;
+    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.3));
   }
-  
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.1);
-    }
-  }
-  
+
   .logo-text {
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   .nav-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex: 1;
     justify-content: center;
   }
-  
+
   .nav-btn {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.6rem 1.2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.7);
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
     font-weight: 500;
     text-decoration: none;
   }
-  
+
   .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.9);
-    transform: translateY(-2px);
+    background: var(--color-primary-muted);
+    border-color: var(--border-default);
+    color: var(--text-primary);
   }
-  
+
   .nav-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
     border-color: transparent;
     color: #fff;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.35);
   }
-  
+
   .nav-icon {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     line-height: 1;
+    opacity: 0.9;
   }
-  
+
   .nav-label {
     font-family: inherit;
   }
-  
+
   .user-section {
     display: flex;
     align-items: center;
   }
-  
+
   .user-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
-  
+
   .user-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
+    background: var(--color-primary-muted);
+    border-color: var(--color-primary);
   }
-  
+
   @media (max-width: 768px) {
     .topbar-content {
       padding: 0 1rem;
     }
-    
+
     .logo-text {
       display: none;
     }
-    
+
     .nav-label {
       display: none;
     }
-    
+
     .nav-btn {
-      padding: 0.6rem;
+      padding: 0.5rem;
       min-width: 40px;
       justify-content: center;
     }
-    
+
     .nav-buttons {
-      gap: 0.3rem;
+      gap: 0.25rem;
     }
   }
 </style>

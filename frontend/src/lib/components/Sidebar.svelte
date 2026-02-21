@@ -63,7 +63,6 @@
   // 删除对话
   async function deleteChat(id: string, event: Event) {
     event.stopPropagation()
-    if (!confirm('确定要删除这个对话吗？')) return
 
     log('删除对话', { chatId: id })
     try {
@@ -127,7 +126,6 @@
       alert('请先选择要删除的对话')
       return
     }
-    if (!confirm(`确定要删除 ${selectedChatIds.size} 个对话吗？`)) return
 
     const ids = Array.from(selectedChatIds)
     log('批量删除对话', { count: ids.length, chatIds: ids })
@@ -299,8 +297,8 @@
 <style>
   .sidebar {
     height: 100%;
-    background: rgba(255, 255, 255, 0.03);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-base);
+    border-right: 1px solid var(--border-subtle);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -309,15 +307,19 @@
   }
 
   .sidebar-header {
-    padding: 1.5rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .sidebar-header h2 {
     margin: 0 0 1rem 0;
-    color: #ff3e00;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
     text-align: center;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .header-actions {
@@ -327,24 +329,25 @@
 
   .new-chat-btn {
     flex: 1;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     justify-content: center;
-    background: rgba(255, 62, 0, 0.1);
-    border: 1px solid rgba(255, 62, 0, 0.3);
-    border-radius: 8px;
-    color: #ff3e00;
-    font-size: 0.95rem;
+    background: var(--color-primary-muted);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .new-chat-btn:hover {
-    background: rgba(255, 62, 0, 0.2);
-    border-color: #ff3e00;
+    background: rgba(249, 115, 22, 0.25);
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
   }
 
   .new-chat-btn svg {
@@ -352,11 +355,11 @@
   }
 
   .edit-btn {
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.7);
+    padding: 0.65rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -365,9 +368,9 @@
   }
 
   .edit-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ff3e00;
-    border-color: rgba(255, 62, 0, 0.3);
+    background: var(--color-primary-muted);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
   }
 
   .edit-mode-actions {
@@ -400,14 +403,14 @@
   }
 
   .delete-selected-btn {
-    background: rgba(255, 62, 0, 0.1);
-    border-color: rgba(255, 62, 0, 0.3);
-    color: #ff3e00;
+    background: var(--color-primary-muted);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
   .delete-selected-btn:hover:not(:disabled) {
-    background: rgba(255, 62, 0, 0.2);
-    border-color: #ff3e00;
+    background: rgba(249, 115, 22, 0.25);
+    border-color: var(--color-primary);
   }
 
   .delete-selected-btn:disabled {
@@ -462,12 +465,12 @@
   }
 
   .chat-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-elevated);
   }
 
   .chat-item.active {
-    background: rgba(255, 62, 0, 0.15);
-    border-left: 3px solid #ff3e00;
+    background: var(--color-primary-muted);
+    border-left: 3px solid var(--color-primary);
   }
 
   .chat-item.edit-mode {
@@ -478,7 +481,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #ff3e00;
+    accent-color: var(--color-primary);
     flex-shrink: 0;
   }
 
@@ -491,7 +494,7 @@
     margin: 0;
     font-size: 0.9rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -499,7 +502,7 @@
 
   .chat-date {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
   }
 
   .delete-btn {
@@ -522,13 +525,13 @@
   }
 
   .delete-btn:hover {
-    background: rgba(255, 62, 0, 0.2);
-    color: #ff3e00;
+    background: var(--color-primary-muted);
+    color: var(--color-primary);
   }
 
   .sidebar-footer {
     padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-subtle);
   }
 
   .user-info {
@@ -536,19 +539,19 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: background 0.2s;
   }
 
   .user-info:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-elevated);
   }
 
   .avatar {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ff3e00, #e63900);
+    background: var(--gradient-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -559,26 +562,26 @@
 
   .username {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
   }
 
   .loading, .error, .empty {
     padding: 2rem 1rem;
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
   }
 
   .error p {
-    color: #ff3e00;
+    color: var(--color-primary);
     margin-bottom: 1rem;
   }
 
   .error button {
     padding: 0.5rem 1rem;
-    background: rgba(255, 62, 0, 0.1);
-    border: 1px solid rgba(255, 62, 0, 0.3);
-    border-radius: 6px;
-    color: #ff3e00;
+    background: var(--color-primary-muted);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
     cursor: pointer;
   }
 
@@ -602,7 +605,8 @@
 
   .resize-handle:hover,
   .resize-handle.resizing {
-    background: rgba(255, 62, 0, 0.5);
+    background: var(--color-primary);
+    opacity: 0.6;
   }
 
   .resize-handle::before {

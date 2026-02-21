@@ -106,7 +106,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: var(--bg-surface);
     overflow: auto;
   }
   
@@ -138,9 +138,9 @@
   }
   
   h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -161,20 +161,20 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 0.9rem 1.75rem;
+    font-size: 1rem;
+    background: var(--gradient-primary);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
   }
-  
+
   .scan-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
   }
   
   .scan-btn:disabled {
@@ -236,7 +236,7 @@
   .files-list h3 {
     font-size: 1.2rem;
     margin-bottom: 1rem;
-    color: #4ecdc4;
+    color: var(--color-accent);
   }
   
   .files-grid {
@@ -294,9 +294,9 @@
   }
   
   .info-card h3 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     margin-bottom: 1rem;
-    color: #4ecdc4;
+    color: var(--color-accent);
   }
   
   .info-card ul {
@@ -314,15 +314,15 @@
     content: "→";
     position: absolute;
     left: 0;
-    color: #667eea;
+    color: var(--color-primary);
   }
-  
+
   .info-card code {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-elevated);
     padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    color: #4ecdc4;
+    border-radius: var(--radius-sm);
+    font-family: ui-monospace, monospace;
+    color: var(--color-accent);
   }
 </style>
 

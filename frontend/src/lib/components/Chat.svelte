@@ -1,10 +1,16 @@
 <script lang="ts">
+  import { onMount, tick } from 'svelte'
   import * as chatApi from '$lib/api/chat'
   import * as videoApi from '$lib/api/video'
+  import * as imageApi from '$lib/api/image'
+  import * as configApi from '$lib/api/config'
+  import type { ConfigModel } from '$lib/api/config'
   import type { Message } from '$lib/api/chat'
   import type { VideoTaskResponse } from '$lib/api/video'
   import { activeChatId } from '$lib/stores/chatStore'
   import { log, logError } from '$lib/logger'
+  import { markdownToHtml } from '$lib/markdown'
+  import mermaid from 'mermaid'
 
   type ModelType = 'text' | 'image' | 'video'
 
@@ -15,38 +21,65 @@
     disabled?: boolean
   }
 
-  const modelCategories: { id: string; label: string; models: ModelItem[] }[] = [
-    {
-      id: 'text',
-      label: '文本生成',
-      models: [{ id: 'GLM-5', label: 'GLM-5', type: 'text' }]
-    },
-    {
-      id: 'image',
-      label: '图片生成',
-      models: [{ id: 'image-placeholder', label: '敬请期待', type: 'image', disabled: true }]
-    },
-    {
-      id: 'video',
-      label: '视频生成',
-      models: [{ id: 'jimeng', label: '即梦视频生成 3.0 Pro', type: 'video' }]
-    }
+  const MODALITIES: { id: ModelType; label: string }[] = [
+    { id: 'text', label: '文本生成' },
+    { id: 'image', label: '图片生成' },
+    { id: 'video', label: '视频生成' }
   ]
+
+  const DEFAULT_MODEL_CATEGORIES: { id: string; label: string; models: ModelItem[] }[] = [
+    { id: 'text', label: '文本生成', models: [{ id: 'GLM-5', label: 'GLM-5', type: 'text' }] },
+    { id: 'image', label: '图片生成', models: [{ id: 'Doubao-Seedream-4.5', label: 'Doubao-Seedream-4.5', type: 'image' }] },
+    { id: 'video', label: '视频生成', models: [{ id: '即梦视频生成 3.0 Pro', label: '即梦视频生成 3.0 Pro', type: 'video' }] }
+  ]
+
+  function buildModelCategoriesFromConfig(model: ConfigModel | undefined): { id: string; label: string; models: ModelItem[] }[] {
+    if (!model) return DEFAULT_MODEL_CATEGORIES
+    return MODALITIES.map(({ id: mod, label }) => {
+      const m = model[mod as keyof ConfigModel]
+      const models = m?.models && Object.keys(m.models).length > 0
+        ? Object.keys(m.models).map((modelId) => ({ id: modelId, label: modelId, type: mod as ModelType }))
+        : DEFAULT_MODEL_CATEGORIES.find((c) => c.id === mod)?.models ?? []
+      return { id: mod, label, models }
+    })
+  }
+
+  function getDefaultSelectedModel(
+    categories: { id: string; label: string; models: ModelItem[] }[],
+    model: ConfigModel | undefined
+  ): ModelItem {
+    const first = categories[0]?.models[0]
+    if (!first) return DEFAULT_MODEL_CATEGORIES[0].models[0]
+    if (!model) return first
+    for (const cat of categories) {
+      const mod = model[cat.id as keyof ConfigModel]
+      const defaultId = mod?.default_model
+      if (defaultId) {
+        const found = cat.models.find((item) => item.id === defaultId)
+        if (found) return found
+      }
+    }
+    return first
+  }
 
   const POLL_INTERVAL_MS = 2500
   const POLL_MAX_ATTEMPTS = 120
+
+  let modelCategories = $state<{ id: string; label: string; models: ModelItem[] }[]>(DEFAULT_MODEL_CATEGORIES)
+  let selectedModel = $state<ModelItem>(DEFAULT_MODEL_CATEGORIES[0].models[0])
 
   let inputText = $state('')
   let messages = $state<Message[]>([])
   let loading = $state(false)
   let sending = $state(false)
-  let selectedModel = $state<ModelItem>(modelCategories[0].models[0])
   let showModelCard = $state(false)
   let modelCardEl = $state<HTMLDivElement | null>(null)
   let modelButtonEl = $state<HTMLButtonElement | null>(null)
+  let messagesContainerEl = $state<HTMLDivElement | null>(null)
   let imageFile = $state<File | null>(null)
   let imagePreview = $state<string | null>(null)
   let videoStatus = $state('')
+  let imageStatus = $state('')
   let extraParamsJson = $state('')
   let extraParamsError = $state('')
   /** 创建视频任务后 API 立即返回的任务信息 */
@@ -59,8 +92,8 @@
   const isTextMode = $derived(selectedModel.type === 'text')
   const isImageMode = $derived(selectedModel.type === 'image')
   const isVideoMode = $derived(selectedModel.type === 'video')
-  const canSendImage = $derived(isVideoMode)
-  const sendDisabled = $derived(isImageMode)
+  const canSendImage = $derived(isVideoMode || isImageMode)
+  const sendDisabled = $derived(false)
 
   $effect(() => {
     if ($activeChatId) {
@@ -75,6 +108,44 @@
     const onDocClick = (e: MouseEvent) => handleClickOutside(e)
     document.addEventListener('click', onDocClick)
     return () => document.removeEventListener('click', onDocClick)
+  })
+
+  $effect(() => {
+    const _ = messages
+    tick().then(() => {
+      const container = document.querySelector('.messages-container')
+      if (container) {
+        const nodes = Array.from(container.querySelectorAll('.mermaid')) as HTMLElement[]
+        if (nodes.length > 0) mermaid.run({ nodes }).catch(() => {})
+      }
+    })
+  })
+
+  $effect(() => {
+    const el = messagesContainerEl
+    if (!el) return
+    const onCopyClick = (e: MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest('.code-copy-btn')
+      if (btn) handleCodeCopy(btn as HTMLElement)
+    }
+    el.addEventListener('click', onCopyClick)
+    return () => el.removeEventListener('click', onCopyClick)
+  })
+
+  onMount(async () => {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      securityLevel: 'loose'
+    })
+    try {
+      const cfg = await configApi.getConfig()
+      const categories = buildModelCategoriesFromConfig(cfg.model)
+      modelCategories = categories
+      selectedModel = getDefaultSelectedModel(categories, cfg.model)
+    } catch (err) {
+      logError('加载配置失败，使用默认模型列表', err)
+    }
   })
 
   async function loadMessages(chatId: string) {
@@ -97,9 +168,11 @@
     return null
   }
 
-  /** 按文档：完成时响应含 video_url；兼容 raw_response.data.video_url（火山引擎等） */
+  /** 按文档：完成时响应含 video_url；兼容 data / raw_response 等嵌套 */
   function getVideoUrlFromResult(res: VideoTaskResponse): string | null {
     if (typeof res.video_url === 'string' && res.video_url) return res.video_url
+    const withData = res as { data?: { video_url?: string } }
+    if (withData.data?.video_url && typeof withData.data.video_url === 'string') return withData.data.video_url
     const raw = res.raw_response as { data?: { video_url?: string } } | undefined
     if (raw?.data?.video_url && typeof raw.data.video_url === 'string') return raw.data.video_url
     if (res.output && typeof (res.output as { url?: string }).url === 'string') {
@@ -121,7 +194,11 @@
     for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
       const result = await videoApi.getVideoTaskResult(taskId)
       lastVideoTaskInfo = result
-      const url = getVideoUrlFromResult(result)
+      let url = getVideoUrlFromResult(result)
+      if (!url && result.status === 'completed') {
+        const withData = result as { data?: { video_url?: string } }
+        url = withData.data?.video_url || (result.raw_response as { data?: { video_url?: string } })?.data?.video_url || null
+      }
       if (url) return url
       if (isFailedStatus(result.status)) {
         const msg = typeof result.error === 'string' && result.error
@@ -141,9 +218,11 @@
     const content = inputText.trim()
     if (isTextMode && !content) return
     if (isVideoMode && !content && !imageFile) return
+    if (isImageMode && !content && !imageFile) return
 
     sending = true
     videoStatus = ''
+    imageStatus = ''
     if (isVideoMode) lastVideoTaskInfo = null
 
     try {
@@ -153,6 +232,40 @@
         const response = await chatApi.sendMessage($activeChatId, content, selectedModel.id)
         messages = [...messages, response]
         log('发送消息成功', { chatId: $activeChatId })
+      } else if (isImageMode) {
+        let bodyFromJson: Record<string, unknown> | null = null
+        if (extraParamsJson.trim()) {
+          try {
+            const parsed = JSON.parse(extraParamsJson.trim())
+            if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              bodyFromJson = parsed as Record<string, unknown>
+            }
+          } catch {
+            extraParamsError = '请求体 JSON 格式错误'
+            sending = false
+            return
+          }
+        }
+        extraParamsError = ''
+        const userContent = content || (imageFile ? '图生图' : '文生图')
+        messages = [...messages, { role: 'user', content: userContent, timestamp: new Date().toISOString() }]
+        imageStatus = '生成中…'
+        let imageBase64: string | undefined
+        if (imageFile) imageBase64 = await fileToBase64(imageFile)
+        const createRes = await imageApi.createImage({
+          body: bodyFromJson ?? undefined,
+          prompt: content || (bodyFromJson?.prompt as string) || (imageFile ? '根据图片生成' : '生成图片'),
+          image: imageBase64
+        })
+        const imageUrl = imageApi.getImageUrlFromResponse(createRes)
+        if (!imageUrl) throw new Error('未返回图片地址')
+        imageStatus = '正在写入对话…'
+        await chatApi.addImageResult($activeChatId, userContent, imageUrl)
+        await loadMessages($activeChatId)
+        inputText = ''
+        imageFile = null
+        imagePreview = null
+        imageStatus = ''
       } else if (isVideoMode) {
         let extraParams: Record<string, unknown> = {}
         if (extraParamsJson.trim()) {
@@ -182,8 +295,15 @@
         if (!taskId) throw new Error('未返回任务 ID')
         videoStatus = '提交成功，等待生成…'
         const videoUrl = await pollVideoTask(taskId)
-        await chatApi.addVideoResult($activeChatId, userContent, videoUrl)
-        await loadMessages($activeChatId)
+        videoStatus = '正在写入对话…'
+        const writeTimeoutMs = 15000
+        await Promise.race([
+          (async () => {
+            await chatApi.addVideoResult($activeChatId, userContent, videoUrl)
+            await loadMessages($activeChatId)
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('写入对话超时')), writeTimeoutMs))
+        ])
         inputText = ''
         imageFile = null
         imagePreview = null
@@ -192,15 +312,19 @@
       }
       scrollToBottom()
     } catch (err) {
-      logError(isTextMode ? '发送消息失败' : '视频生成失败', err)
+      logError(
+        isTextMode ? '发送消息失败' : isImageMode ? '图片生成失败' : '视频生成失败',
+        err
+      )
       alert(err instanceof Error ? err.message : '操作失败，请重试')
       if (isTextMode && content) {
         messages = messages.slice(0, -1)
         inputText = content
-      } else if (isVideoMode) {
+      } else if (isVideoMode || isImageMode) {
         messages = messages.slice(0, -1)
       }
       videoStatus = ''
+      imageStatus = ''
     } finally {
       sending = false
     }
@@ -272,6 +396,13 @@
     return /^https?:\/\//.test(content.trim())
   }
 
+  function isImageUrl(content: string): boolean {
+    const s = content.trim()
+    if (/^data:image\//i.test(s)) return true
+    if (/^https?:\/\//i.test(s) && /\.(png|jpe?g|gif|webp)(\?|$)/i.test(s)) return true
+    return false
+  }
+
   async function queryTaskById() {
     const id = queryTaskId.trim()
     if (!id || queryingTask) return
@@ -286,28 +417,54 @@
       queryingTask = false
     }
   }
+
+  async function handleCodeCopy(btn: HTMLElement) {
+    const code = btn.getAttribute('data-code')
+    if (code == null) return
+    try {
+      await navigator.clipboard.writeText(code)
+      const orig = btn.textContent
+      btn.textContent = '已复制'
+      btn.classList.add('copied')
+      setTimeout(() => {
+        btn.textContent = orig
+        btn.classList.remove('copied')
+      }, 1500)
+    } catch {
+      btn.textContent = '复制失败'
+      setTimeout(() => { btn.textContent = '复制' }, 1500)
+    }
+  }
 </script>
 
 <div class="chat-container">
   {#if !$activeChatId}
     <div class="welcome">
+      <div class="welcome-icon">💬</div>
       <h2>欢迎使用 Smlrag</h2>
-      <p>点击左侧 "新对话" 开始对话</p>
+      <p>在左侧点击「新对话」即可开始文本、图片或视频生成</p>
     </div>
   {:else}
-    <div class="messages-container">
+    <div class="messages-container" bind:this={messagesContainerEl}>
       {#if loading}
         <div class="loading-messages">加载消息中...</div>
       {:else if messages.length === 0}
         <div class="empty-messages">
-          <p>开始新的对话吧！</p>
+          <span class="empty-icon">✨</span>
+          <p>开始新的对话吧</p>
         </div>
       {:else}
         {#each messages as message (message.timestamp)}
           <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'}>
             <div class="message-content">
-              {#if message.role === 'assistant' && isUrl(message.content)}
+              {#if message.role === 'assistant' && isImageUrl(message.content)}
+                <p class="result-label">图片结果：</p>
+                <img src={message.content} alt="生成图片" class="message-result-image" />
+                <a href={message.content} target="_blank" rel="noopener noreferrer">打开原图</a>
+              {:else if message.role === 'assistant' && isUrl(message.content)}
                 <p>视频结果：<a href={message.content} target="_blank" rel="noopener noreferrer">{message.content}</a></p>
+              {:else if message.role === 'assistant'}
+                <div class="markdown-body">{@html markdownToHtml(message.content)}</div>
               {:else}
                 <p>{message.content}</p>
               {/if}
@@ -333,7 +490,14 @@
               <span class="model-select-arrow" class:open={showModelCard}>▾</span>
             </button>
             {#if showModelCard}
-              <div class="model-card" bind:this={modelCardEl} role="listbox" onclick={(e) => e.stopPropagation()}>
+              <div
+                class="model-card"
+                bind:this={modelCardEl}
+                role="listbox"
+                tabindex="0"
+                onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => e.stopPropagation()}
+              >
                 {#each modelCategories as category}
                   <div class="model-category">
                     <div class="model-category-title">{category.label}</div>
@@ -378,7 +542,20 @@
           </div>
         {/if}
         {#if isImageMode}
-          <p class="image-mode-hint">图片生成能力敬请期待</p>
+          <div class="params-row">
+            <label class="params-label" for="image-params-json">请求体（JSON，参数平铺，与 video 接口一致）</label>
+            <textarea
+              id="image-params-json"
+              class="params-json"
+              bind:value={extraParamsJson}
+              placeholder={'{"model":"Doubao-Seedream-4.5","prompt":"","negative_prompt":"","image":"","extra_body":{"provider":{"only":[],"order":[],"sort":null}}}'}
+              rows="5"
+              disabled={sending}
+            ></textarea>
+            {#if extraParamsError}
+              <span class="params-error">{extraParamsError}</span>
+            {/if}
+          </div>
         {/if}
         {#if isVideoMode}
           <div class="query-task-row">
@@ -474,14 +651,16 @@
           <input
             type="text"
             bind:value={inputText}
-            placeholder={isTextMode ? '输入消息...' : isVideoMode ? '输入视频描述/提示词...' : '输入描述...'}
+            placeholder={isTextMode ? '输入消息...' : isVideoMode ? '输入视频描述/提示词...' : isImageMode ? '输入图片描述/提示词...' : '输入描述...'}
             onkeypress={handleKeypress}
             disabled={sending || sendDisabled}
           />
-          {#if !sendDisabled && ((isTextMode && inputText) || (isVideoMode && (inputText || imageFile)))}
+          {#if !sendDisabled && ((isTextMode && inputText) || (isVideoMode && (inputText || imageFile)) || (isImageMode && (inputText || imageFile)))}
             <button class="send-btn" onclick={handleSend} disabled={sending}>
               {#if sending && isVideoMode && videoStatus}
                 {videoStatus}
+              {:else if sending && isImageMode && imageStatus}
+                {imageStatus}
               {:else}
                 {sending ? '处理中...' : '发送'}
               {/if}
@@ -507,17 +686,32 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .welcome-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+    filter: drop-shadow(0 4px 12px rgba(249, 115, 22, 0.2));
   }
 
   .welcome h2 {
-    color: #ff3e00;
-    margin-bottom: 1rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
   }
 
   .welcome p {
-    color: rgb(189, 46, 46);
+    color: var(--text-muted);
     font-size: 1rem;
+    max-width: 320px;
   }
 
   .messages-container {
@@ -545,9 +739,16 @@
   .loading-messages, .empty-messages {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
+    gap: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
   }
 
   .message {
@@ -583,14 +784,16 @@
   }
 
   .message.user .message-content {
-    background: #ff3e00;
+    background: var(--gradient-primary);
     color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.25);
   }
 
   .message.assistant .message-content {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
     border-bottom-left-radius: 4px;
   }
 
@@ -600,13 +803,165 @@
   }
 
   .message-content a {
-    color: #ff8c5a;
-    text-decoration: underline;
+    color: var(--color-accent);
+    text-decoration: none;
     word-break: break-all;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s, color 0.2s;
   }
 
   .message-content a:hover {
-    color: #ffb380;
+    color: #2dd4bf;
+    border-bottom-color: currentColor;
+  }
+
+  .message-content .result-label {
+    margin-bottom: 0.5rem;
+  }
+
+  .message-content .markdown-body {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .message-content .markdown-body :global(p) {
+    margin: 0 0 0.75em;
+    line-height: 1.6;
+  }
+
+  .message-content .markdown-body :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .message-content .markdown-body :global(h1),
+  .message-content .markdown-body :global(h2),
+  .message-content .markdown-body :global(h3) {
+    margin: 1em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .message-content .markdown-body :global(h1) { font-size: 1.25em; }
+  .message-content .markdown-body :global(h2) { font-size: 1.1em; }
+  .message-content .markdown-body :global(h3) { font-size: 1em; }
+
+  .message-content .markdown-body :global(ul),
+  .message-content .markdown-body :global(ol) {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  .message-content .markdown-body :global(li) {
+    margin: 0.25em 0;
+  }
+
+  .message-content .markdown-body :global(.code-block-wrap) {
+    position: relative;
+    margin: 0.75em 0;
+  }
+
+  .message-content .markdown-body :global(.code-copy-btn) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+  }
+
+  .message-content .markdown-body :global(.code-copy-btn:hover) {
+    color: var(--text-primary);
+    background: var(--color-primary-muted);
+    border-color: var(--color-primary);
+  }
+
+  .message-content .markdown-body :global(.code-copy-btn.copied) {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .message-content .markdown-body :global(pre) {
+    margin: 0;
+    padding: 2.25rem 1rem 1rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .message-content .markdown-body :global(pre code) {
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: inherit;
+  }
+
+  .message-content .markdown-body :global(code) {
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.9em;
+    font-family: ui-monospace, monospace;
+  }
+
+  .message-content .markdown-body :global(.mermaid) {
+    margin: 1em 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  .message-content .markdown-body :global(.mermaid svg) {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .message-content .markdown-body :global(blockquote) {
+    margin: 0.75em 0;
+    padding-left: 1em;
+    border-left: 3px solid var(--color-primary);
+    color: var(--text-muted);
+  }
+
+  .message-content .markdown-body :global(hr) {
+    margin: 1em 0;
+    border: none;
+    border-top: 1px solid var(--border-default);
+  }
+
+  .message-content .markdown-body :global(table) {
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin: 0.75em 0;
+  }
+
+  .message-content .markdown-body :global(th),
+  .message-content .markdown-body :global(td) {
+    border: 1px solid var(--border-default);
+    padding: 0.4em 0.75em;
+    text-align: left;
+  }
+
+  .message-content .markdown-body :global(th) {
+    background: var(--bg-base);
+    font-weight: 600;
+  }
+
+  .message-content .message-result-image {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
   }
 
   .message-time {
@@ -630,11 +985,11 @@
   .input-wrapper {
     width: 100%;
     max-width: 800px;
-    padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.0);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0);
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-sm);
   }
 
   .model-row {
@@ -650,18 +1005,19 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.45rem 0.85rem;
     font-size: 0.9rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(0, 0, 0, 0.35);
-    color: inherit;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: var(--bg-base);
+    color: var(--text-primary);
     cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
   }
 
   .model-select-btn:hover {
-    background: rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 255, 255, 0.35);
+    background: var(--color-primary-muted);
+    border-color: var(--color-primary);
   }
 
   .model-select-label {
@@ -741,8 +1097,8 @@
   }
 
   .model-item.selected {
-    background: rgba(255, 62, 0, 0.25);
-    color: #ff8c5a;
+    background: var(--color-primary-muted);
+    color: var(--color-primary);
   }
 
   .model-item.disabled {
@@ -750,11 +1106,6 @@
     cursor: not-allowed;
   }
 
-  .image-mode-hint {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0 0 0.5rem 0;
-  }
 
   .query-task-row {
     margin-bottom: 0.75rem;
@@ -779,7 +1130,7 @@
 
   .query-task-input:focus {
     outline: none;
-    border-color: #ff3e00;
+    border-color: var(--color-primary);
   }
 
   .query-task-input::placeholder {
@@ -790,16 +1141,16 @@
     flex-shrink: 0;
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: none;
-    background: #ff3e00;
+    background: var(--gradient-primary);
     color: white;
     cursor: pointer;
     font-weight: 500;
   }
 
   .query-task-btn:hover:not(:disabled) {
-    background: #e63900;
+    filter: brightness(1.08);
   }
 
   .query-task-btn:disabled {
@@ -833,7 +1184,7 @@
 
   .params-json:focus {
     outline: none;
-    border-color: #ff3e00;
+    border-color: var(--color-primary);
   }
 
   .params-json::placeholder {
@@ -936,18 +1287,17 @@
     width: 100%;
     padding: 0.8rem 6rem 0.8rem 1rem;
     font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(0, 0, 0, 0.3);
-    color: inherit;
-    transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
   input:focus {
     outline: none;
-    border-color: #ff3e00;
-    background: rgba(0, 0, 0, 0.4);
-    box-shadow: 0 0 0 3px rgba(255, 62, 0, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-muted);
   }
 
   input::placeholder {
@@ -964,21 +1314,22 @@
     right: 0.4rem;
     top: 50%;
     transform: translateY(-50%);
-    padding: 0.6rem 1.5rem;
-    font-size: 0.95rem;
-    border-radius: 6px;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
     border: none;
-    background: #ff3e00;
+    background: var(--gradient-primary);
     color: white;
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
   }
 
   .send-btn:hover:not(:disabled) {
-    background: #e63900;
-    box-shadow: 0 2px 6px rgba(255, 62, 0, 0.4);
+    filter: brightness(1.08);
+    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.4);
   }
 
   .send-btn:active:not(:disabled) {

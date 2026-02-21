@@ -9,6 +9,10 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^17.0.3",
+    "marked-highlight": "^2.2.3",
+    "mermaid": "^11.12.3",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
@@ -21,4 +25,3 @@
     "vite": "^5.4.0"
   }
 }
-

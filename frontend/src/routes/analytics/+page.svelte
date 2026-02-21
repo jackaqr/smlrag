@@ -27,7 +27,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: var(--bg-surface);
   }
   
   .content {
@@ -54,9 +54,9 @@
   }
   
   h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -106,7 +106,7 @@
     content: "→";
     position: absolute;
     left: 0;
-    color: #667eea;
+    color: var(--color-primary);
   }
 </style>
 

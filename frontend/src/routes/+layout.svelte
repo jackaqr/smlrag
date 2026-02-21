@@ -23,12 +23,16 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--gradient-hero);
   }
-  
+
   .main-content {
     flex: 1;
     display: flex;
     overflow: hidden;
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-md);
   }
 </style>
 

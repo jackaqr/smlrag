@@ -59,6 +59,13 @@ export DIFY_API_KEY=your_api_key_here         # Dify API Key
 - `GET /api/chats/{chat_id}/messages` - 获取对话消息
 - `POST /api/chats/{chat_id}/messages` - 发送消息
 
+### 配置接口（持久化到 SQLite）
+
+- `GET /api/config` - 获取当前配置（模型配置、界面设置，未保存项为默认值）
+- `PUT /api/config` - 更新配置（请求体 `{ "model": {...}, "ui": {...} }`，与现有配置合并）
+
+配置存储在 `backend/data/config.db`（SQLite 单文件），仅存配置信息，资源占用极小。
+
 ### 管理接口
 
 - `POST /api/admin/clear` - 清除所有数据
@@ -133,10 +140,8 @@ backend/
 
 ## 数据存储说明
 
-- 聊天数据仅存储在进程内存中
-- 重启服务或容器后，所有对话数据自动清除
-- 不依赖任何数据库
-- 适合开发和测试环境使用
+- **聊天数据**：仅存储在进程内存中，重启后清除，不依赖数据库。
+- **配置数据**：模型配置、界面设置等持久化在 `data/config.db`（SQLite），占用极小（单文件通常 &lt; 1MB）。可通过环境变量 `CONFIG_DB_PATH` 指定数据库路径。
 
 ## 生产环境建议
 

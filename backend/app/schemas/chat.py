@@ -22,6 +22,12 @@ class VideoResultRequest(BaseModel):
     video_url: str
 
 
+class ImageResultRequest(BaseModel):
+    """将图片生成结果写入对话历史的请求体"""
+    user_content: str
+    image_url: str
+
+
 class MessageResponse(BaseModel):
     role: str
     content: str

@@ -7,6 +7,7 @@ from chat_history import chat_manager
 from ...schemas.chat import (
     ChatMetadataResponse,
     CreateChatRequest,
+    ImageResultRequest,
     MessageResponse,
     OpenAIChatCompletionRequest,
     OpenAIChatCompletionResponse,
@@ -93,6 +94,22 @@ async def add_video_result(chat_id: str, request: VideoResultRequest):
         chat_id=chat_id,
         role="assistant",
         content=request.video_url,
+    )
+    return assistant_message.to_dict()
+
+
+@chats_router.post("/messages/{chat_id}/image-result", response_model=MessageResponse)
+async def add_image_result(chat_id: str, request: ImageResultRequest):
+    """将图片生成结果写入对话历史：先添加用户消息，再添加助手消息（内容为 image_url）"""
+    chat_manager.add_message(
+        chat_id=chat_id,
+        role="user",
+        content=request.user_content,
+    )
+    assistant_message = chat_manager.add_message(
+        chat_id=chat_id,
+        role="assistant",
+        content=request.image_url,
     )
     return assistant_message.to_dict()
 
