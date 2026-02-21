@@ -316,10 +316,7 @@
     font-size: 1.25rem;
     font-weight: 600;
     text-align: center;
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-brand);
   }
 
   .header-actions {
@@ -393,13 +390,13 @@
 
   .select-all-btn {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--color-primary-muted);
+    border-color: var(--border-default);
+    color: var(--text-primary);
   }
 
   .select-all-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-primary-muted);
   }
 
   .delete-selected-btn {
@@ -419,13 +416,13 @@
   }
 
   .cancel-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--color-primary-muted);
+    border-color: var(--border-default);
+    color: var(--text-secondary);
   }
 
   .cancel-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-primary-muted);
   }
 
   .chat-list {
@@ -443,12 +440,12 @@
   }
 
   .chat-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--color-primary-muted);
     border-radius: 3px;
   }
 
   .chat-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--color-primary-muted);
   }
 
   .chat-item {
@@ -510,7 +507,7 @@
     padding: 0.25rem;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     cursor: pointer;
     border-radius: 4px;
     opacity: 0;
@@ -555,7 +552,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #fff;
     font-weight: 600;
     font-size: 0.9rem;
   }

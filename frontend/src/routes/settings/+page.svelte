@@ -393,7 +393,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .sidebar-header .icon {
@@ -402,7 +402,7 @@
 
   .sidebar-header .title {
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--text-primary);
   }
 
   .sidebar-nav {
@@ -419,7 +419,7 @@
     padding: 0.65rem 1.25rem;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 0.95rem;
     text-align: left;
@@ -428,8 +428,8 @@
   }
 
   .nav-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--color-primary-muted);
+    color: var(--text-primary);
   }
 
   .nav-item.active {
@@ -446,12 +446,12 @@
     flex: 1;
     overflow: auto;
     padding: 1.5rem 2rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
   }
 
   .loading {
     padding: 3rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
   }
 
   .model-config {
@@ -468,25 +468,28 @@
 
   .model-list-btn {
     padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--gradient-primary);
     color: #fff;
     cursor: pointer;
     font-size: 0.95rem;
+    font-weight: 600;
+    transition: filter 0.2s, box-shadow 0.2s;
   }
 
   .model-list-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    filter: brightness(1.08);
+    box-shadow: 0 2px 10px rgba(142, 164, 202, 0.35);
   }
 
   .selected-model-name {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
     font-size: 1rem;
   }
 
   .selected-model-hint {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     font-size: 0.95rem;
   }
 
@@ -502,19 +505,21 @@
   }
 
   .model-list-card {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    background: var(--bg-elevated);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-lg);
     padding: 1rem;
     min-width: 280px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-lg);
   }
 
   .model-list-title {
     font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-primary);
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .model-list {
@@ -537,7 +542,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--text-primary);
     cursor: pointer;
     font-size: 0.95rem;
     text-align: left;
@@ -545,7 +550,7 @@
   }
 
   .model-list-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--color-primary-muted);
   }
 
   .model-list-item.selected {
@@ -555,7 +560,7 @@
 
   .model-modality {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
   }
 
   .params-section {
@@ -565,17 +570,17 @@
   .params-label {
     display: block;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
   }
 
   .params-json {
     width: 100%;
     padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(0, 0, 0, 0.25);
-    color: #fff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: #fff;
+    color: var(--text-primary);
     font-family: ui-monospace, monospace;
     font-size: 0.9rem;
     resize: vertical;
@@ -599,13 +604,20 @@
 
   .add-model-form {
     margin-bottom: 1.5rem;
-    padding: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    padding: 1.25rem;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    background: var(--bg-elevated);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    box-shadow: var(--shadow-md);
+  }
+
+  .add-model-form .params-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-primary);
   }
 
   .add-model-form .params-actions {
@@ -615,11 +627,28 @@
 
   .add-model-form input[type='text'] {
     padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(0, 0, 0, 0.25);
-    color: #fff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: #fff;
+    color: var(--text-primary);
     font-size: 0.95rem;
+  }
+
+  .add-model-form input[type='text']:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .add-model-form textarea.params-json {
+    background: #fff;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+
+  .add-model-form select {
+    background: #fff;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
   }
 
   .model-list-group {
@@ -628,7 +657,7 @@
 
   .model-list-group .model-modality {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     margin-bottom: 0.25rem;
   }
 
@@ -639,7 +668,7 @@
   .panel-title {
     font-size: 1.25rem;
     margin: 0 0 1rem 0;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--text-primary);
   }
 
   .ui-form {
@@ -656,16 +685,21 @@
 
   .block label {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--text-secondary);
   }
 
   .block select {
     padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(0, 0, 0, 0.2);
-    color: #fff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-default);
+    background: #fff;
+    color: var(--text-primary);
     font-size: 0.95rem;
+  }
+
+  .block select:focus {
+    outline: none;
+    border-color: var(--color-primary);
   }
 
   .checkbox-row {

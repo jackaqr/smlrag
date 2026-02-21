@@ -1,44 +1,46 @@
 /* ========== 设计系统：SMLRAG ========== */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
-@import 'highlight.js/styles/github-dark.min.css';
+@import 'highlight.js/styles/github.min.css';
 
 :root {
-  /* 主色：珊瑚橙 + 青绿点缀 */
-  --color-primary: #f97316;
-  --color-primary-hover: #ea580c;
-  --color-primary-muted: rgba(249, 115, 22, 0.15);
-  --color-accent: #14b8a6;
-  --color-accent-muted: rgba(20, 184, 166, 0.2);
+  /* 主题色：EDEDF4（浅灰紫）+ 8EA4CA（柔和蓝） */
+  --color-primary: #8ea4ca;
+  --color-primary-hover: #7a92b8;
+  --color-primary-muted: rgba(142, 164, 202, 0.2);
+  --color-accent: #8ea4ca;
+  --color-accent-muted: rgba(142, 164, 202, 0.15);
+  /* SMLRAG 品牌字加深 */
+  --color-brand: #3d5070;
 
   /* 背景层级 */
-  --bg-base: #0f0f14;
-  --bg-surface: #16161d;
-  --bg-elevated: #1c1c26;
-  --bg-overlay: rgba(22, 22, 29, 0.95);
+  --bg-base: #ededf4;
+  --bg-surface: #e8e8f0;
+  --bg-elevated: #ffffff;
+  --bg-overlay: rgba(237, 237, 244, 0.98);
 
   /* 渐变 */
-  --gradient-hero: linear-gradient(135deg, #0f0f14 0%, #1a1a2e 40%, #16213e 100%);
-  --gradient-bar: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  --gradient-primary: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  --gradient-accent: linear-gradient(90deg, #f97316, #14b8a6);
+  --gradient-hero: linear-gradient(160deg, #ededf4 0%, #e2e4ec 50%, #d8dce8 100%);
+  --gradient-bar: linear-gradient(135deg, #e8e8f0 0%, #dfe2eb 100%);
+  --gradient-primary: linear-gradient(135deg, #8ea4ca 0%, #7a92b8 100%);
+  --gradient-accent: linear-gradient(90deg, #8ea4ca, #9eb0d0);
 
   /* 文字 */
-  --text-primary: rgba(255, 255, 255, 0.95);
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-primary: #2d3142;
+  --text-secondary: #4c5268;
+  --text-muted: #6b7280;
 
   /* 边框 */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-default: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(45, 49, 66, 0.08);
+  --border-default: rgba(45, 49, 66, 0.14);
 
   /* 圆角与阴影 */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(45, 49, 66, 0.08);
+  --shadow-md: 0 4px 20px rgba(45, 49, 66, 0.12);
+  --shadow-lg: 0 8px 32px rgba(45, 49, 66, 0.16);
 
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   line-height: 1.5;

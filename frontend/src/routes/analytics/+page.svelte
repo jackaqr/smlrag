@@ -32,7 +32,7 @@
   
   .content {
     text-align: center;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
     padding: 2rem;
     max-width: 600px;
   }
@@ -64,13 +64,13 @@
   
   .subtitle {
     font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
     margin-bottom: 2rem;
   }
   
   .placeholder {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-primary-muted);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 2rem;
     margin-top: 2rem;
@@ -82,7 +82,7 @@
   }
   
   .hint {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     font-size: 1rem;
     margin-top: 1.5rem;
     margin-bottom: 0.5rem;
@@ -99,7 +99,7 @@
     padding: 0.5rem 0;
     padding-left: 1.5rem;
     position: relative;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
   }
   
   li::before {

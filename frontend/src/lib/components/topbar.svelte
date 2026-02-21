@@ -78,14 +78,11 @@
 
   .logo-icon {
     font-size: 1.4rem;
-    filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.3));
+    filter: drop-shadow(0 0 8px rgba(142, 164, 202, 0.4));
   }
 
   .logo-text {
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-brand);
   }
 
   .nav-buttons {
@@ -121,7 +118,7 @@
     background: var(--gradient-primary);
     border-color: transparent;
     color: #fff;
-    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.35);
+    box-shadow: 0 2px 12px rgba(142, 164, 202, 0.35);
   }
 
   .nav-icon {

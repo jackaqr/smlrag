@@ -148,7 +148,7 @@
   
   .subtitle {
     font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
   }
   
   .actions {
@@ -226,8 +226,8 @@
   }
   
   .files-list {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-primary-muted);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
@@ -252,13 +252,13 @@
     background: rgba(0, 0, 0, 0.3);
     padding: 0.75rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-subtle);
     transition: all 0.3s ease;
   }
   
   .file-item:hover {
     background: rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--border-default);
     transform: translateY(-2px);
   }
   
@@ -273,7 +273,7 @@
   
   .file-name {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -281,16 +281,16 @@
   
   .file-size {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
     margin-top: 0.25rem;
   }
   
   .info-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-primary-muted);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 1.5rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
   }
   
   .info-card h3 {

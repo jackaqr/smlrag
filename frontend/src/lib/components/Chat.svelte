@@ -12,6 +12,8 @@
   import { markdownToHtml } from '$lib/markdown'
   import mermaid from 'mermaid'
 
+  type DisplayMessage = Message & { placeholder?: boolean }
+
   type ModelType = 'text' | 'image' | 'video'
 
   interface ModelItem {
@@ -69,7 +71,7 @@
   let selectedModel = $state<ModelItem>(DEFAULT_MODEL_CATEGORIES[0].models[0])
 
   let inputText = $state('')
-  let messages = $state<Message[]>([])
+  let messages = $state<DisplayMessage[]>([])
   let loading = $state(false)
   let sending = $state(false)
   let showModelCard = $state(false)
@@ -135,7 +137,7 @@
   onMount(async () => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'dark',
+      theme: 'neutral',
       securityLevel: 'loose'
     })
     try {
@@ -229,8 +231,10 @@
       if (isTextMode) {
         inputText = ''
         messages = [...messages, { role: 'user', content, timestamp: new Date().toISOString() }]
+        messages = [...messages, { role: 'assistant', content: '', timestamp: new Date().toISOString(), placeholder: true }]
+        scrollToBottom()
         const response = await chatApi.sendMessage($activeChatId, content, selectedModel.id)
-        messages = [...messages, response]
+        messages = [...messages.slice(0, -1), response]
         log('发送消息成功', { chatId: $activeChatId })
       } else if (isImageMode) {
         let bodyFromJson: Record<string, unknown> | null = null
@@ -318,7 +322,7 @@
       )
       alert(err instanceof Error ? err.message : '操作失败，请重试')
       if (isTextMode && content) {
-        messages = messages.slice(0, -1)
+        messages = messages.slice(0, -2)
         inputText = content
       } else if (isVideoMode || isImageMode) {
         messages = messages.slice(0, -1)
@@ -454,10 +458,14 @@
           <p>开始新的对话吧</p>
         </div>
       {:else}
-        {#each messages as message (message.timestamp)}
+        {#each messages as message (message.placeholder ? `placeholder-${message.timestamp}` : message.timestamp)}
           <div class="message" class:user={message.role === 'user'} class:assistant={message.role === 'assistant'}>
             <div class="message-content">
-              {#if message.role === 'assistant' && isImageUrl(message.content)}
+              {#if message.role === 'assistant' && message.placeholder}
+                <div class="message-placeholder" aria-label="思考中">
+                  <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                </div>
+              {:else if message.role === 'assistant' && isImageUrl(message.content)}
                 <p class="result-label">图片结果：</p>
                 <img src={message.content} alt="生成图片" class="message-result-image" />
                 <a href={message.content} target="_blank" rel="noopener noreferrer">打开原图</a>
@@ -695,16 +703,13 @@
     font-size: 4rem;
     margin-bottom: 1rem;
     opacity: 0.9;
-    filter: drop-shadow(0 4px 12px rgba(249, 115, 22, 0.2));
+    filter: drop-shadow(0 4px 12px rgba(142, 164, 202, 0.3));
   }
 
   .welcome h2 {
     font-size: 1.75rem;
     font-weight: 600;
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-brand);
     margin-bottom: 0.5rem;
   }
 
@@ -732,7 +737,7 @@
   }
 
   .messages-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--color-primary-muted);
     border-radius: 4px;
   }
 
@@ -785,9 +790,9 @@
 
   .message.user .message-content {
     background: var(--gradient-primary);
-    color: white;
+    color: #fff;
     border-bottom-right-radius: 4px;
-    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.25);
+    box-shadow: 0 2px 12px rgba(142, 164, 202, 0.25);
   }
 
   .message.assistant .message-content {
@@ -795,6 +800,31 @@
     border: 1px solid var(--border-subtle);
     color: var(--text-primary);
     border-bottom-left-radius: 4px;
+  }
+
+  .message-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    min-height: 1.5em;
+  }
+
+  .message-placeholder .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: placeholder-bounce 1.4s ease-in-out infinite both;
+  }
+
+  .message-placeholder .dot:nth-child(1) { animation-delay: 0s; }
+  .message-placeholder .dot:nth-child(2) { animation-delay: 0.2s; }
+  .message-placeholder .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes placeholder-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; }
+    40% { transform: scale(1); opacity: 1; }
   }
 
   .message-content p {
@@ -811,7 +841,7 @@
   }
 
   .message-content a:hover {
-    color: #2dd4bf;
+    color: var(--color-primary-hover);
     border-bottom-color: currentColor;
   }
 
@@ -966,7 +996,7 @@
 
   .message-time {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     margin-top: 0.25rem;
     padding: 0 0.5rem;
   }
@@ -1043,10 +1073,10 @@
     max-height: 320px;
     overflow-y: auto;
     padding: 0.5rem 0;
-    background: rgba(20, 20, 22, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: #fff;
+    border: 1px solid var(--border-default);
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     z-index: 100;
   }
 
@@ -1055,7 +1085,7 @@
   }
 
   .model-category:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-subtle);
     margin-bottom: 0.5rem;
   }
 
@@ -1064,7 +1094,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.5);
+    color: #64748b;
     padding: 0.25rem 0.5rem;
     margin-bottom: 0.25rem;
   }
@@ -1087,13 +1117,14 @@
     font-size: 0.9rem;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.9);
+    color: #1e293b;
     cursor: pointer;
     border-radius: 6px;
   }
 
   .model-item:hover:not(.disabled) {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--color-primary-muted);
+    color: var(--color-primary);
   }
 
   .model-item.selected {
@@ -1102,7 +1133,7 @@
   }
 
   .model-item.disabled {
-    color: rgba(255, 255, 255, 0.4);
+    color: #94a3b8;
     cursor: not-allowed;
   }
 
@@ -1123,7 +1154,7 @@
     padding: 0.5rem 0.75rem;
     font-size: 0.9rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--border-default);
     background: rgba(0, 0, 0, 0.3);
     color: inherit;
   }
@@ -1134,7 +1165,7 @@
   }
 
   .query-task-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-muted);
   }
 
   .query-task-btn {
@@ -1165,7 +1196,7 @@
   .params-label {
     display: block;
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-secondary);
     margin-bottom: 0.35rem;
   }
 
@@ -1175,7 +1206,7 @@
     font-size: 0.85rem;
     font-family: ui-monospace, monospace;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--border-default);
     background: rgba(0, 0, 0, 0.3);
     color: inherit;
     resize: vertical;
@@ -1188,7 +1219,7 @@
   }
 
   .params-json::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: var(--text-muted);
   }
 
   .params-error {
@@ -1202,14 +1233,14 @@
     margin-bottom: 0.75rem;
     padding: 0.75rem 1rem;
     background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--border-subtle);
     border-radius: 8px;
   }
 
   .video-task-info-title {
     font-size: 0.85rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
   }
 
@@ -1222,13 +1253,13 @@
   }
 
   .video-task-info-list dt {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     margin: 0;
   }
 
   .video-task-info-list dd {
     margin: 0;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--text-primary);
     word-break: break-all;
   }
 
@@ -1247,7 +1278,7 @@
 
   .image-hint {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
   }
 
   .image-preview-wrap {
@@ -1261,21 +1292,21 @@
     max-height: 60px;
     object-fit: contain;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--border-default);
   }
 
   .clear-image-btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
     border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-default);
+    background: var(--color-primary-muted);
     color: inherit;
     cursor: pointer;
   }
 
   .clear-image-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--color-primary-muted);
   }
 
   .input-row {
@@ -1301,7 +1332,7 @@
   }
 
   input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
   }
 
   input:disabled {
@@ -1324,12 +1355,12 @@
     font-weight: 600;
     transition: all 0.2s;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+    box-shadow: 0 2px 8px rgba(142, 164, 202, 0.3);
   }
 
   .send-btn:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 2px 12px rgba(249, 115, 22, 0.4);
+    box-shadow: 0 2px 12px rgba(142, 164, 202, 0.4);
   }
 
   .send-btn:active:not(:disabled) {
