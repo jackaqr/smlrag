@@ -9,10 +9,17 @@ class CreateChatRequest(BaseModel):
 
 class SendMessageRequest(BaseModel):
     content: str
+    model: Optional[str] = None
 
 
 class UpdateChatTitleRequest(BaseModel):
     title: str
+
+
+class VideoResultRequest(BaseModel):
+    """将视频生成结果写入对话历史的请求体"""
+    user_content: str
+    video_url: str
 
 
 class MessageResponse(BaseModel):

@@ -68,13 +68,39 @@ export async function getMessages(chatId: string, limit?: number): Promise<Messa
 /**
  * 发送消息（路径：/chats/messages/{chatId}）
  */
-export async function sendMessage(chatId: string, content: string): Promise<Message> {
+export async function sendMessage(
+  chatId: string,
+  content: string,
+  model?: string
+): Promise<Message> {
+  const body: { content: string; model?: string } = { content }
+  if (model != null) body.model = model
   const response = await fetch(`${API_BASE_URL}/chats/messages/${chatId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
+    body: JSON.stringify(body)
   })
   if (!response.ok) throw new Error('发送消息失败')
+  return response.json()
+}
+
+/**
+ * 将视频生成结果写入对话历史（路径：/chats/messages/{chatId}/video-result）
+ */
+export async function addVideoResult(
+  chatId: string,
+  userContent: string,
+  videoUrl: string
+): Promise<Message> {
+  const response = await fetch(
+    `${API_BASE_URL}/chats/messages/${chatId}/video-result`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_content: userContent, video_url: videoUrl })
+    }
+  )
+  if (!response.ok) throw new Error('写入视频结果失败')
   return response.json()
 }
 

@@ -24,11 +24,14 @@ def _build_payload_messages(messages: Iterable[Message]) -> List[dict]:
     return payload
 
 
-async def generate_ai_reply(messages: Iterable[Message]) -> str:
+async def generate_ai_reply(
+    messages: Iterable[Message], model: str | None = None
+) -> str:
     """
     调用外部 AI 服务生成回复
 
     :param messages: 对话消息列表（从旧到新排序）
+    :param model: 可选模型名，不传则使用配置默认
     """
     if not settings.openai_api_key:
         raise AIServiceError("未配置 OPENAI_API_KEY，无法调用 AI 服务。")
@@ -45,7 +48,7 @@ async def generate_ai_reply(messages: Iterable[Message]) -> str:
         "Content-Type": "application/json",
     }
     payload = {
-        "model": settings.openai_model,
+        "model": model or settings.openai_model,
         "messages": payload_messages,
         "temperature": 0.7,
     }

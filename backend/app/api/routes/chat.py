@@ -14,6 +14,7 @@ from ...schemas.chat import (
     OpenAIChoiceMessage,
     SendMessageRequest,
     UpdateChatTitleRequest,
+    VideoResultRequest,
 )
 from ...services.ai import AIServiceError, generate_ai_reply
 
@@ -80,6 +81,22 @@ async def get_messages(chat_id: str, limit: Optional[int] = None):
     return [msg.to_dict() for msg in messages]
 
 
+@chats_router.post("/messages/{chat_id}/video-result", response_model=MessageResponse)
+async def add_video_result(chat_id: str, request: VideoResultRequest):
+    """将视频生成结果写入对话历史：先添加用户消息，再添加助手消息（内容为 video_url）"""
+    chat_manager.add_message(
+        chat_id=chat_id,
+        role="user",
+        content=request.user_content,
+    )
+    assistant_message = chat_manager.add_message(
+        chat_id=chat_id,
+        role="assistant",
+        content=request.video_url,
+    )
+    return assistant_message.to_dict()
+
+
 @chats_router.post("/messages/{chat_id}", response_model=MessageResponse)
 async def send_message(chat_id: str, request: SendMessageRequest):
     """发送消息并获取 AI 回复"""
@@ -89,7 +106,9 @@ async def send_message(chat_id: str, request: SendMessageRequest):
         content=request.content,
     )
     try:
-        ai_response = await generate_ai_reply(chat_manager.get_messages(chat_id))
+        ai_response = await generate_ai_reply(
+            chat_manager.get_messages(chat_id), model=request.model
+        )
     except AIServiceError as exc:
         logger.warning("AI 服务调用失败，将使用回声回复: %s", exc)
         ai_response = f"收到您的消息: {request.content}"
