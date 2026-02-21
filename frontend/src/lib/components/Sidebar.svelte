@@ -3,6 +3,7 @@
   import * as chatApi from '$lib/api/chat'
   import type { ChatMetadata } from '$lib/api/chat'
   import { activeChatId } from '$lib/stores/chatStore'
+  import { log, logError } from '$lib/logger'
 
   // 使用 Svelte 5 的 runes API
   let chats = $state<ChatMetadata[]>([])
@@ -21,17 +22,18 @@
 
   // 加载对话列表
   async function loadChats() {
+    log('对话列表加载', {})
     loading = true
     error = null
     try {
       chats = await chatApi.getAllChats()
-      // 按更新时间倒序排列
-      chats.sort((a, b) => 
+      chats.sort((a, b) =>
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       )
+      log('对话列表加载成功', { count: chats.length })
     } catch (err) {
       error = err instanceof Error ? err.message : '加载失败'
-      console.error('加载对话列表失败:', err)
+      logError('对话列表加载失败', err)
     } finally {
       loading = false
     }
@@ -40,37 +42,39 @@
   // 创建新对话
   async function createNewChat() {
     const chatId = `chat-${Date.now()}`
+    log('创建新对话', { chatId })
     try {
       const newChat = await chatApi.createChat(chatId, '新对话')
       chats = [newChat, ...chats]
       activeChatId.set(chatId)
+      log('创建新对话成功', { chatId, title: newChat.title })
     } catch (err) {
-      console.error('创建对话失败:', err)
+      logError('创建对话失败', err)
       alert('创建对话失败，请重试')
     }
   }
 
   // 选择对话
   function selectChat(id: string) {
+    log('选择对话', { chatId: id })
     activeChatId.set(id)
   }
 
   // 删除对话
   async function deleteChat(id: string, event: Event) {
     event.stopPropagation()
-    
     if (!confirm('确定要删除这个对话吗？')) return
-    
+
+    log('删除对话', { chatId: id })
     try {
       await chatApi.deleteChat(id)
       chats = chats.filter(chat => chat.id !== id)
-      
-      // 如果删除的是当前激活的对话，切换到第一个
       if ($activeChatId === id) {
         activeChatId.set(chats.length > 0 ? chats[0].id : null)
       }
+      log('删除对话成功', { chatId: id })
     } catch (err) {
-      console.error('删除对话失败:', err)
+      logError('删除对话失败', err)
       alert('删除失败，请重试')
     }
   }
@@ -91,9 +95,8 @@
   // 切换编辑模式
   function toggleEditMode() {
     isEditMode = !isEditMode
-    if (!isEditMode) {
-      selectedChatIds = new Set()
-    }
+    if (!isEditMode) selectedChatIds = new Set()
+    log('切换编辑模式', { isEditMode })
   }
 
   // 切换选中状态
@@ -109,11 +112,13 @@
 
   // 全选/取消全选
   function toggleSelectAll() {
-    if (selectedChatIds.size === chats.length) {
-      selectedChatIds = new Set()
-    } else {
+    const willSelectAll = selectedChatIds.size !== chats.length
+    if (willSelectAll) {
       selectedChatIds = new Set(chats.map(chat => chat.id))
+    } else {
+      selectedChatIds = new Set()
     }
+    log(willSelectAll ? '全选对话' : '取消全选', { count: selectedChatIds.size })
   }
 
   // 批量删除
@@ -122,27 +127,21 @@
       alert('请先选择要删除的对话')
       return
     }
-
     if (!confirm(`确定要删除 ${selectedChatIds.size} 个对话吗？`)) return
 
-    const deletePromises = Array.from(selectedChatIds).map(id => chatApi.deleteChat(id))
-    
+    const ids = Array.from(selectedChatIds)
+    log('批量删除对话', { count: ids.length, chatIds: ids })
     try {
-      await Promise.all(deletePromises)
-      
-      // 更新对话列表
+      await Promise.all(ids.map(id => chatApi.deleteChat(id)))
       chats = chats.filter(chat => !selectedChatIds.has(chat.id))
-      
-      // 如果当前激活的对话被删除，清除激活状态
       if ($activeChatId && selectedChatIds.has($activeChatId)) {
         activeChatId.set(chats.length > 0 ? chats[0].id : null)
       }
-      
-      // 清空选中状态并退出编辑模式
       selectedChatIds = new Set()
       isEditMode = false
+      log('批量删除成功', { deleted: ids.length })
     } catch (err) {
-      console.error('批量删除失败:', err)
+      logError('批量删除失败', err)
       alert('批量删除失败，请重试')
     }
   }

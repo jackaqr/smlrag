@@ -1,19 +1,26 @@
 <script lang="ts">
   import { scanFiles, type ScanResult } from '$lib/api/dataset'
-  
+  import { log, logError } from '$lib/logger'
+
   let scanning = $state(false)
   let scanResult = $state<ScanResult | null>(null)
   let error = $state<string>('')
-  
+
   async function handleScan() {
+    log('文档扫描开始', {})
     scanning = true
     error = ''
     scanResult = null
-    
     try {
       scanResult = await scanFiles()
+      log('文档扫描成功', {
+        total_files: scanResult.total_files,
+        total_size: scanResult.total_size,
+        path: scanResult.scan_path
+      })
     } catch (err) {
       error = err instanceof Error ? err.message : '扫描失败'
+      logError('文档扫描失败', err)
     } finally {
       scanning = false
     }

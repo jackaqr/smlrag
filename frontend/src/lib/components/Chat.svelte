@@ -3,6 +3,7 @@
   import * as chatApi from '$lib/api/chat'
   import type { Message } from '$lib/api/chat'
   import { activeChatId } from '$lib/stores/chatStore'
+  import { log, logError } from '$lib/logger'
 
   // 使用 Svelte 5 的 runes API
   let inputText = $state('')
@@ -21,11 +22,13 @@
   
   // 加载消息历史
   async function loadMessages(chatId: string) {
+    log('加载消息', { chatId })
     loading = true
     try {
       messages = await chatApi.getMessages(chatId)
+      log('加载消息成功', { chatId, count: messages.length })
     } catch (err) {
-      console.error('加载消息失败:', err)
+      logError('加载消息失败', err)
       messages = []
     } finally {
       loading = false
@@ -35,33 +38,27 @@
   // 发送消息
   async function handleSend() {
     if (!inputText.trim() || !$activeChatId || sending) return
-    
+
     const content = inputText.trim()
     inputText = ''
     sending = true
-    
+    log('发送消息', { chatId: $activeChatId, length: content.length })
+
     try {
-      // 添加用户消息到界面
       messages = [...messages, {
         role: 'user',
         content,
         timestamp: new Date().toISOString()
       }]
-      
-      // 发送到后端并获取AI回复
       const response = await chatApi.sendMessage($activeChatId, content)
-      
-      // 添加AI回复
       messages = [...messages, response]
-      
-      // 滚动到底部
+      log('发送消息成功', { chatId: $activeChatId })
       scrollToBottom()
     } catch (err) {
-      console.error('发送消息失败:', err)
+      logError('发送消息失败', err)
       alert('发送失败，请重试')
-      // 移除失败的用户消息
       messages = messages.slice(0, -1)
-      inputText = content // 恢复输入
+      inputText = content
     } finally {
       sending = false
     }

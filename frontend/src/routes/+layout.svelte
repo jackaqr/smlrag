@@ -1,6 +1,13 @@
 <script lang="ts">
+  import { page } from '$app/stores'
   import '../app.css'
   import Topbar from '$lib/components/topbar.svelte'
+  import { log } from '$lib/logger'
+
+  $effect(() => {
+    const path = $page.url.pathname
+    log('导航', { path })
+  })
 </script>
 
 <div class="app">

@@ -21,7 +21,7 @@ class Settings:
         base_url = os.getenv("OPENAI_BASE_URL", OPENAI_BASE_URL)
         self.openai_base_url = base_url.rstrip("/")
 
-        self.openai_model = os.getenv("OPENAI_MODEL", "DeepSeek-V3.1")
+        self.openai_model = os.getenv("OPENAI_MODEL", "GLM-5")
         self.openai_timeout = int(os.getenv("OPENAI_TIMEOUT", "30"))
         self.openai_system_prompt = os.getenv(
             "OPENAI_SYSTEM_PROMPT", "你是一名乐于助人的 AI 助手。"

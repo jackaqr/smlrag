@@ -13,7 +13,7 @@ if (-not (Test-Path "venv")) {
 }
 
 # 启动服务
-Write-Host "服务启动在 http://localhost:8000" -ForegroundColor Cyan
-Write-Host "API 文档: http://localhost:8000/docs" -ForegroundColor Cyan
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+Write-Host "服务启动在 http://localhost:5301" -ForegroundColor Cyan
+Write-Host "API 文档: http://localhost:5301/docs" -ForegroundColor Cyan
+uvicorn main:app --host 0.0.0.0 --port 5301 --reload
 

@@ -54,23 +54,22 @@ export async function getChatMetadata(chatId: string): Promise<ChatMetadata> {
 }
 
 /**
- * 获取对话消息列表
+ * 获取对话消息列表（路径：/chats/messages/{chatId}）
  */
 export async function getMessages(chatId: string, limit?: number): Promise<Message[]> {
-  const url = limit 
-    ? `${API_BASE_URL}/chats/${chatId}/messages?limit=${limit}`
-    : `${API_BASE_URL}/chats/${chatId}/messages`
-  
+  const url = limit
+    ? `${API_BASE_URL}/chats/messages/${chatId}?limit=${limit}`
+    : `${API_BASE_URL}/chats/messages/${chatId}`
   const response = await fetch(url)
   if (!response.ok) throw new Error('获取消息失败')
   return response.json()
 }
 
 /**
- * 发送消息
+ * 发送消息（路径：/chats/messages/{chatId}）
  */
 export async function sendMessage(chatId: string, content: string): Promise<Message> {
-  const response = await fetch(`${API_BASE_URL}/chats/${chatId}/messages`, {
+  const response = await fetch(`${API_BASE_URL}/chats/messages/${chatId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content })

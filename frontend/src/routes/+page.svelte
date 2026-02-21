@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
-  
-  // 根路径重定向到 /chat
+  import { goto } from '$app/navigation'
+  import { onMount } from 'svelte'
+  import { log } from '$lib/logger'
+
   onMount(() => {
-    goto('/chat', { replaceState: true });
-  });
+    log('首页重定向', { to: '/chat' })
+    goto('/chat', { replaceState: true })
+  })
 </script>
 
 <div class="redirect-page">

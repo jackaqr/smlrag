@@ -15,5 +15,5 @@ fi
 # 启动服务
 echo "服务启动在 http://localhost:8000"
 echo "API 文档: http://localhost:8000/docs"
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --host 0.0.0.0 --port 5301 --reload
 
