@@ -111,13 +111,13 @@
   .nav-btn:hover {
     background: var(--color-primary-muted);
     border-color: var(--border-default);
-    color: var(--text-primary);
+    color: var(--color-brand);
   }
 
   .nav-btn.active {
     background: var(--gradient-primary);
     border-color: transparent;
-    color: #fff;
+    color: var(--color-brand);
     box-shadow: 0 2px 12px rgba(142, 164, 202, 0.35);
   }
 

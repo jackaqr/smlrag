@@ -90,11 +90,13 @@
   let queryTaskId = $state('')
   let queryingTask = $state(false)
   let queryTaskError = $state('')
+  /** 主动输入（JSON/根据任务 ID 查询）区域默认收起 */
+  let showParamsPanel = $state(false)
 
   const isTextMode = $derived(selectedModel.type === 'text')
   const isImageMode = $derived(selectedModel.type === 'image')
   const isVideoMode = $derived(selectedModel.type === 'video')
-  const canSendImage = $derived(isVideoMode || isImageMode)
+  const canSendImage = $derived(isTextMode || isVideoMode || isImageMode)
   const sendDisabled = $derived(false)
 
   $effect(() => {
@@ -218,7 +220,7 @@
   async function handleSend() {
     if (!$activeChatId || sending || sendDisabled) return
     const content = inputText.trim()
-    if (isTextMode && !content) return
+    if (isTextMode && !content && !imageFile) return
     if (isVideoMode && !content && !imageFile) return
     if (isImageMode && !content && !imageFile) return
 
@@ -229,12 +231,17 @@
 
     try {
       if (isTextMode) {
+        const userContent = content || (imageFile ? '[图片]' : '')
         inputText = ''
-        messages = [...messages, { role: 'user', content, timestamp: new Date().toISOString() }]
+        messages = [...messages, { role: 'user', content: userContent, timestamp: new Date().toISOString() }]
         messages = [...messages, { role: 'assistant', content: '', timestamp: new Date().toISOString(), placeholder: true }]
         scrollToBottom()
-        const response = await chatApi.sendMessage($activeChatId, content, selectedModel.id)
+        let imageBase64: string | undefined
+        if (imageFile) imageBase64 = await fileToBase64(imageFile)
+        const response = await chatApi.sendMessage($activeChatId, content || (imageFile ? '请根据图片内容回复' : ''), selectedModel.id, imageBase64)
         messages = [...messages.slice(0, -1), response]
+        imageFile = null
+        imagePreview = null
         log('发送消息成功', { chatId: $activeChatId })
       } else if (isImageMode) {
         let bodyFromJson: Record<string, unknown> | null = null
@@ -382,6 +389,26 @@
     imagePreview = null
   }
 
+  function onPasteImage(e: ClipboardEvent) {
+    if (!canSendImage) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (!file) return
+        e.preventDefault()
+        imageFile = file
+        const reader = new FileReader()
+        reader.onload = () => {
+          imagePreview = typeof reader.result === 'string' ? reader.result : null
+        }
+        reader.readAsDataURL(file)
+        return
+      }
+    }
+  }
+
   function handleKeypress(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
@@ -485,8 +512,68 @@
 
     <div class="input-container">
       <div class="input-wrapper">
-        <div class="model-row">
-          <div class="model-selector-wrap">
+          {#if showParamsPanel}
+            {#if isImageMode}
+              <div class="params-row">
+                <label class="params-label" for="image-params-json">请求体（JSON，参数平铺，与 video 接口一致）</label>
+                <textarea
+                  id="image-params-json"
+                  class="params-json"
+                  bind:value={extraParamsJson}
+                  placeholder={'{"model":"Doubao-Seedream-4.5","prompt":"","negative_prompt":"","image":"","extra_body":{"provider":{"only":[],"order":[],"sort":null}}}'}
+                  rows="5"
+                  disabled={sending}
+                ></textarea>
+                {#if extraParamsError}
+                  <span class="params-error">{extraParamsError}</span>
+                {/if}
+              </div>
+            {/if}
+            {#if isVideoMode}
+              <div class="query-task-row">
+                <label class="params-label" for="query-task-id">根据任务 ID 查询</label>
+                <div class="query-task-input-wrap">
+                  <input
+                    id="query-task-id"
+                    type="text"
+                    class="query-task-input"
+                    bind:value={queryTaskId}
+                    placeholder="输入创建任务时返回的 id"
+                    disabled={queryingTask || sending}
+                  />
+                  <button
+                    type="button"
+                    class="query-task-btn"
+                    onclick={queryTaskById}
+                    disabled={!queryTaskId.trim() || queryingTask || sending}
+                  >
+                    {queryingTask ? '查询中...' : '查询'}
+                  </button>
+                </div>
+                {#if queryTaskError}
+                  <span class="params-error">{queryTaskError}</span>
+                {/if}
+              </div>
+              <div class="params-row">
+                <label class="params-label" for="extra-params-json">参数配置（JSON，与 prompt 同级平铺）</label>
+                <textarea
+                  id="extra-params-json"
+                  class="params-json"
+                  bind:value={extraParamsJson}
+                  placeholder={'{"aspect_ratio":"16:9","seconds":5}'}
+                  rows="3"
+                  disabled={sending}
+                ></textarea>
+                {#if extraParamsError}
+                  <span class="params-error">{extraParamsError}</span>
+                {/if}
+              </div>
+            {/if}
+          {/if}
+        <div class="input-and-actions-row" onpaste={onPasteImage}>
+        <div class="input-actions-row">
+          <div class="model-row">
+            <div class="model-selector-wrap">
             <button
               type="button"
               class="model-select-btn"
@@ -529,83 +616,74 @@
                 {/each}
               </div>
             {/if}
+            </div>
           </div>
-        </div>
-        {#if canSendImage}
+          {#if canSendImage}
           <div class="image-upload-row">
-            <input
-              type="file"
-              accept="image/*"
-              onchange={onImageSelect}
-              class="file-input"
-            />
+            <label class="file-input-label">
+              <input
+                type="file"
+                accept="image/*"
+                onchange={onImageSelect}
+                class="file-input"
+              />
+              <span class="file-input-btn">选择图片</span>
+            </label>
             {#if imagePreview}
               <div class="image-preview-wrap">
                 <img src={imagePreview} alt="预览" class="image-preview" />
                 <button type="button" class="clear-image-btn" onclick={clearImage}>移除</button>
               </div>
             {:else}
-              <span class="image-hint">可选：上传图片（图生视频）</span>
+              <span class="image-hint">
+                {#if isTextMode}
+                  可选：上传图片或从剪贴板粘贴（多模态输入）
+                {:else if isImageMode}
+                  可选：上传图片或从剪贴板粘贴（图生图）
+                {:else}
+                  可选：上传图片或从剪贴板粘贴（图生视频）
+                {/if}
+              </span>
             {/if}
           </div>
-        {/if}
-        {#if isImageMode}
-          <div class="params-row">
-            <label class="params-label" for="image-params-json">请求体（JSON，参数平铺，与 video 接口一致）</label>
-            <textarea
-              id="image-params-json"
-              class="params-json"
-              bind:value={extraParamsJson}
-              placeholder={'{"model":"Doubao-Seedream-4.5","prompt":"","negative_prompt":"","image":"","extra_body":{"provider":{"only":[],"order":[],"sort":null}}}'}
-              rows="5"
-              disabled={sending}
-            ></textarea>
-            {#if extraParamsError}
-              <span class="params-error">{extraParamsError}</span>
-            {/if}
+          {/if}
+          {#if isImageMode || isVideoMode}
+          <div class="params-panel-toggle-wrap">
+            <button
+              type="button"
+              class="params-panel-toggle"
+              onclick={() => (showParamsPanel = !showParamsPanel)}
+              aria-expanded={showParamsPanel}
+            >
+              <span class="params-panel-toggle-arrow" class:open={showParamsPanel}>▾</span>
+              <span>主动输入{isImageMode ? '（请求体 JSON）' : '（根据任务 ID 查询 / 参数 JSON）'}</span>
+            </button>
           </div>
-        {/if}
-        {#if isVideoMode}
-          <div class="query-task-row">
-            <label class="params-label" for="query-task-id">根据任务 ID 查询</label>
-            <div class="query-task-input-wrap">
-              <input
-                id="query-task-id"
-                type="text"
-                class="query-task-input"
-                bind:value={queryTaskId}
-                placeholder="输入创建任务时返回的 id"
-                disabled={queryingTask || sending}
-              />
-              <button
-                type="button"
-                class="query-task-btn"
-                onclick={queryTaskById}
-                disabled={!queryTaskId.trim() || queryingTask || sending}
-              >
-                {queryingTask ? '查询中...' : '查询'}
-              </button>
-            </div>
-            {#if queryTaskError}
-              <span class="params-error">{queryTaskError}</span>
-            {/if}
-          </div>
-          <div class="params-row">
-            <label class="params-label" for="extra-params-json">参数配置（JSON，与 prompt 同级平铺）</label>
-            <textarea
-              id="extra-params-json"
-              class="params-json"
-              bind:value={extraParamsJson}
-              placeholder={'{"aspect_ratio":"16:9","seconds":5}'}
-              rows="3"
-              disabled={sending}
-            ></textarea>
-            {#if extraParamsError}
-              <span class="params-error">{extraParamsError}</span>
-            {/if}
-          </div>
-          {#if lastVideoTaskInfo}
-            <div class="video-task-info">
+          {/if}
+        </div>
+        <div class="input-row">
+          <input
+            type="text"
+            bind:value={inputText}
+            placeholder={isTextMode ? '输入消息...' : isVideoMode ? '输入视频描述/提示词...' : isImageMode ? '输入图片描述/提示词...' : '输入描述...'}
+            onkeypress={handleKeypress}
+            disabled={sending || sendDisabled}
+          />
+          {#if !sendDisabled && ((isTextMode && (inputText || imageFile)) || (isVideoMode && (inputText || imageFile)) || (isImageMode && (inputText || imageFile)))}
+            <button class="send-btn" onclick={handleSend} disabled={sending}>
+              {#if sending && isVideoMode && videoStatus}
+                {videoStatus}
+              {:else if sending && isImageMode && imageStatus}
+                {imageStatus}
+              {:else}
+                {sending ? '处理中...' : '发送'}
+              {/if}
+            </button>
+          {/if}
+        </div>
+        </div>
+        {#if isVideoMode && lastVideoTaskInfo}
+          <div class="video-task-info">
               <div class="video-task-info-title">
                 {lastVideoTaskInfo.status === 'completed' ? '任务已完成' : '任务状态'}
               </div>
@@ -654,27 +732,6 @@
               </dl>
             </div>
           {/if}
-        {/if}
-        <div class="input-row">
-          <input
-            type="text"
-            bind:value={inputText}
-            placeholder={isTextMode ? '输入消息...' : isVideoMode ? '输入视频描述/提示词...' : isImageMode ? '输入图片描述/提示词...' : '输入描述...'}
-            onkeypress={handleKeypress}
-            disabled={sending || sendDisabled}
-          />
-          {#if !sendDisabled && ((isTextMode && inputText) || (isVideoMode && (inputText || imageFile)) || (isImageMode && (inputText || imageFile)))}
-            <button class="send-btn" onclick={handleSend} disabled={sending}>
-              {#if sending && isVideoMode && videoStatus}
-                {videoStatus}
-              {:else if sending && isImageMode && imageStatus}
-                {imageStatus}
-              {:else}
-                {sending ? '处理中...' : '发送'}
-              {/if}
-            </button>
-          {/if}
-        </div>
       </div>
     </div>
   {/if}
@@ -907,7 +964,7 @@
   }
 
   .message-content .markdown-body :global(.code-copy-btn:hover) {
-    color: var(--text-primary);
+    color: var(--color-brand);
     background: var(--color-primary-muted);
     border-color: var(--color-primary);
   }
@@ -1014,7 +1071,7 @@
 
   .input-wrapper {
     width: 100%;
-    max-width: 800px;
+    max-width: 1100px;
     padding: 1.25rem 1.5rem;
     background: var(--bg-elevated);
     border-radius: var(--radius-lg);
@@ -1022,8 +1079,26 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .model-row {
+  .input-and-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
     margin-bottom: 0.75rem;
+    width: 100%;
+  }
+
+  .input-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .model-row {
+    margin-bottom: 0;
   }
 
   .model-selector-wrap {
@@ -1040,7 +1115,7 @@
     border-radius: var(--radius-md);
     border: 1px solid var(--border-default);
     background: var(--bg-base);
-    color: var(--text-primary);
+    color: var(--color-brand);
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
   }
@@ -1155,8 +1230,8 @@
     font-size: 0.9rem;
     border-radius: 8px;
     border: 1px solid var(--border-default);
-    background: rgba(0, 0, 0, 0.3);
-    color: inherit;
+    background: #fff;
+    color: var(--text-primary);
   }
 
   .query-task-input:focus {
@@ -1175,7 +1250,7 @@
     border-radius: var(--radius-md);
     border: none;
     background: var(--gradient-primary);
-    color: white;
+    color: var(--color-brand);
     cursor: pointer;
     font-weight: 500;
   }
@@ -1187,6 +1262,39 @@
   .query-task-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .params-panel-toggle-wrap {
+    margin-bottom: 0;
+  }
+
+  .params-panel-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  .params-panel-toggle:hover {
+    color: var(--color-primary);
+    background: var(--color-primary-muted);
+  }
+
+  .params-panel-toggle-arrow {
+    display: inline-block;
+    transition: transform 0.2s;
+  }
+
+  .params-panel-toggle-arrow.open {
+    transform: rotate(180deg);
   }
 
   .params-row {
@@ -1207,8 +1315,8 @@
     font-family: ui-monospace, monospace;
     border-radius: 8px;
     border: 1px solid var(--border-default);
-    background: rgba(0, 0, 0, 0.3);
-    color: inherit;
+    background: #fff;
+    color: var(--text-primary);
     resize: vertical;
     min-height: 4rem;
   }
@@ -1267,13 +1375,51 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
+  }
+
+  .file-input-label {
+    display: inline-flex;
+    cursor: pointer;
+    position: relative;
   }
 
   .file-input {
-    width: auto;
-    padding: 0.25rem;
-    font-size: 0.85rem;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 0;
+  }
+
+  .file-input-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+
+  .file-input-label:hover .file-input-btn {
+    border-color: var(--color-primary);
+    background: var(--color-primary-muted);
+    box-shadow: 0 0 0 1px var(--color-primary-muted);
+  }
+
+  .file-input-label:focus-within .file-input-btn {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-muted);
   }
 
   .image-hint {
@@ -1311,7 +1457,8 @@
 
   .input-row {
     position: relative;
-    width: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
   input {
@@ -1350,7 +1497,7 @@
     border-radius: var(--radius-sm);
     border: none;
     background: var(--gradient-primary);
-    color: white;
+    color: var(--color-brand);
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;

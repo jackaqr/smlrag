@@ -334,7 +334,7 @@
     background: var(--color-primary-muted);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
-    color: var(--color-primary);
+    color: var(--color-brand);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -366,7 +366,7 @@
 
   .edit-btn:hover {
     background: var(--color-primary-muted);
-    color: var(--color-primary);
+    color: var(--color-brand);
     border-color: var(--color-primary);
   }
 
@@ -402,7 +402,7 @@
   .delete-selected-btn {
     background: var(--color-primary-muted);
     border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-brand);
   }
 
   .delete-selected-btn:hover:not(:disabled) {
@@ -523,7 +523,7 @@
 
   .delete-btn:hover {
     background: var(--color-primary-muted);
-    color: var(--color-primary);
+    color: var(--color-brand);
   }
 
   .sidebar-footer {
@@ -552,7 +552,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--color-brand);
     font-weight: 600;
     font-size: 0.9rem;
   }
@@ -578,7 +578,7 @@
     background: var(--color-primary-muted);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-sm);
-    color: var(--color-primary);
+    color: var(--color-brand);
     cursor: pointer;
   }
 

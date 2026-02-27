@@ -91,7 +91,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: var(--bg-elevated);
-  color: var(--text-primary);
+  color: var(--color-brand);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, transform 0.15s;
 }

@@ -10,6 +10,7 @@ class CreateChatRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     content: str
     model: Optional[str] = None
+    image: Optional[str] = None  # 多模态：base64 或 data URL，文本模型可带图
 
 
 class UpdateChatTitleRequest(BaseModel):

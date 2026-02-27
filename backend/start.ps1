@@ -1,4 +1,6 @@
 # Windows PowerShell 启动脚本
+# 无论从哪个目录执行，都切换到脚本所在目录（backend）再运行
+Set-Location $PSScriptRoot
 
 Write-Host "启动 Smlrag 聊天后端服务..." -ForegroundColor Green
 

@@ -67,14 +67,17 @@ export async function getMessages(chatId: string, limit?: number): Promise<Messa
 
 /**
  * 发送消息（路径：/chats/messages/{chatId}）
+ * @param image - 可选，多模态时传入图片 base64 或 data URL
  */
 export async function sendMessage(
   chatId: string,
   content: string,
-  model?: string
+  model?: string,
+  image?: string
 ): Promise<Message> {
-  const body: { content: string; model?: string } = { content }
+  const body: { content: string; model?: string; image?: string } = { content }
   if (model != null) body.model = model
+  if (image != null && image !== '') body.image = image
   const response = await fetch(`${API_BASE_URL}/chats/messages/${chatId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -116,7 +116,7 @@ async def add_image_result(chat_id: str, request: ImageResultRequest):
 
 @chats_router.post("/messages/{chat_id}", response_model=MessageResponse)
 async def send_message(chat_id: str, request: SendMessageRequest):
-    """发送消息并获取 AI 回复"""
+    """发送消息并获取 AI 回复（支持多模态：可选 image）"""
     chat_manager.add_message(
         chat_id=chat_id,
         role="user",
@@ -124,11 +124,13 @@ async def send_message(chat_id: str, request: SendMessageRequest):
     )
     try:
         ai_response = await generate_ai_reply(
-            chat_manager.get_messages(chat_id), model=request.model
+            chat_manager.get_messages(chat_id),
+            model=request.model,
+            image_base64=request.image,
         )
     except AIServiceError as exc:
-        logger.warning("AI 服务调用失败，将使用回声回复: %s", exc)
-        ai_response = f"收到您的消息: {request.content}"
+        logger.warning("AI 服务调用失败，将使用原始错误信息回复: %s", exc)
+        ai_response = str(exc)
     assistant_message = chat_manager.add_message(
         chat_id=chat_id,
         role="assistant",

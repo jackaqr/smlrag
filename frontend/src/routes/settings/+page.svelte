@@ -471,7 +471,7 @@
     border-radius: var(--radius-md);
     border: none;
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--color-brand);
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 600;
@@ -749,7 +749,7 @@
 
   .btn.primary {
     background: var(--gradient-primary);
-    color: #fff;
+    color: var(--color-brand);
   }
 
   .btn.primary:hover:not(:disabled) {
