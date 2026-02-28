@@ -53,8 +53,18 @@ async def update_config(request: ConfigUpdateRequest):
     stored_ui = get(CONFIG_KEY_UI) or {}
     updates: dict = {}
     if request.model is not None:
-        new_model = _deep_merge(_deep_merge(default_model, stored_model), request.model)
-        updates[CONFIG_KEY_MODEL] = new_model
+        merged = _deep_merge(_deep_merge(default_model, stored_model), request.model)
+        # 对每个模态的 models 做整体替换，以便前端可以“删除”某个模型（发送不含该 key 的 models）
+        for mod in ("text", "image", "video"):
+            if (
+                request.model.get(mod) is not None
+                and isinstance(request.model[mod], dict)
+                and "models" in request.model[mod]
+            ):
+                if merged.get(mod) is None:
+                    merged[mod] = {}
+                merged[mod]["models"] = request.model[mod]["models"]
+        updates[CONFIG_KEY_MODEL] = merged
     if request.ui is not None:
         new_ui = _deep_merge(_deep_merge(default_ui, stored_ui), request.ui)
         updates[CONFIG_KEY_UI] = new_ui

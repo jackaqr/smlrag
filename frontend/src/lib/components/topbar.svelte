@@ -100,10 +100,10 @@
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-md);
-    color: var(--text-muted);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 500;
     text-decoration: none;
   }
@@ -115,14 +115,16 @@
   }
 
   .nav-btn.active {
-    background: var(--gradient-primary);
+    background: var(--color-brand);
     border-color: transparent;
-    color: var(--color-brand);
-    box-shadow: 0 2px 12px rgba(142, 164, 202, 0.35);
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 12px rgba(61, 80, 112, 0.4);
   }
 
   .nav-icon {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     line-height: 1;
     opacity: 0.9;
   }

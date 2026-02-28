@@ -55,14 +55,45 @@ export async function getChatMetadata(chatId: string): Promise<ChatMetadata> {
 
 /**
  * 获取对话消息列表（路径：/chats/messages/{chatId}）
+ * @param options.signal 可选，用于取消请求（如切换对话时中止上次请求）
+ * @param options.timeoutMs 超时毫秒数，默认 15000，超时后拒绝避免一直“加载消息中”
  */
-export async function getMessages(chatId: string, limit?: number): Promise<Message[]> {
+export async function getMessages(
+  chatId: string,
+  limit?: number,
+  options?: { signal?: AbortSignal; timeoutMs?: number }
+): Promise<Message[]> {
+  const timeoutMs = options?.timeoutMs ?? 15000
   const url = limit
     ? `${API_BASE_URL}/chats/messages/${chatId}?limit=${limit}`
     : `${API_BASE_URL}/chats/messages/${chatId}`
-  const response = await fetch(url)
-  if (!response.ok) throw new Error('获取消息失败')
-  return response.json()
+
+  const timeoutController = new AbortController()
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  if (timeoutMs > 0) {
+    timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+  }
+  const timeoutSignal = timeoutController.signal
+
+  let signal: AbortSignal = timeoutSignal
+  if (options?.signal) {
+    const combined = new AbortController()
+    const onAbort = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      combined.abort()
+    }
+    timeoutSignal.addEventListener('abort', onAbort)
+    options.signal.addEventListener('abort', onAbort)
+    signal = combined.signal
+  }
+
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal })
+    if (!response.ok) throw new Error('获取消息失败')
+    return response.json()
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
 
 /**

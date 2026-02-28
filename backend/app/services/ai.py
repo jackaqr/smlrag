@@ -85,11 +85,7 @@ async def generate_ai_reply(
         "temperature": 0.7,
     }
 
-    logger.info(
-        "发送到 AI API 的原始请求: url=%s payload=%s",
-        url,
-        payload,
-    )
+    logger.info("给 aiping 发送请求: url=%s body=%s", url, payload)
 
     timeout = aiohttp.ClientTimeout(total=settings.openai_timeout)
     async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -99,11 +95,7 @@ async def generate_ai_reply(
                 response_preview = raw_response_text[:2000] + "...(truncated)"
             else:
                 response_preview = raw_response_text
-            logger.info(
-                "AI API 原始响应: status=%s body=%s",
-                response.status,
-                response_preview or "(empty)",
-            )
+            logger.info("收到 aiping 响应: status=%s body=%s", response.status, response_preview or "(empty)")
 
             if response.status >= 400:
                 raise AIServiceError(

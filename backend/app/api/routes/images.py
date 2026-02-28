@@ -35,11 +35,13 @@ async def create_image(request: ImageCreateRequest):
     payload = request.model_dump(mode="json", exclude_none=True)
     if not payload.get("model"):
         payload["model"] = settings.image_model
+    logger.info("给 aiping 发送请求: url=%s body=%s", url, payload)
     timeout = aiohttp.ClientTimeout(total=settings.openai_timeout)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, headers=_headers(), json=payload) as response:
                 text = await response.text()
+                logger.info("收到 aiping 响应: status=%s body=%s", response.status, text or "(empty)")
                 if response.content_type and "application/json" in response.content_type and text:
                     try:
                         result = json.loads(text)

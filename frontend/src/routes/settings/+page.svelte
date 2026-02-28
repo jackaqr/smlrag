@@ -60,6 +60,10 @@
   let addModelSetDefault = $state(false)
   let addModelError = $state('')
 
+  /** 删除模型 */
+  let showDeleteConfirm = $state(false)
+  let deleting = $state(false)
+
   onMount(async () => {
     loading = true
     message = null
@@ -91,6 +95,7 @@
 
   function openModelList() {
     showModelListCard = true
+    showAddModelForm = false
   }
 
   function selectModel(item: ModelItem) {
@@ -203,6 +208,52 @@
       saving = false
     }
   }
+
+  function openDeleteConfirm() {
+    showDeleteConfirm = true
+  }
+
+  function closeDeleteConfirm() {
+    showDeleteConfirm = false
+  }
+
+  async function confirmDeleteModel() {
+    if (!selectedModel || !config?.model) return
+    const modality = selectedModel.modality as keyof ConfigModel
+    const idToDelete = selectedModel.id
+    const current = config.model[modality] ?? {}
+    const models = { ...(current.models ?? {}) }
+    delete models[idToDelete]
+    const defaultModel = current.default_model === idToDelete ? undefined : current.default_model
+    const remainingIds = Object.keys(models)
+    const newDefault =
+      defaultModel !== undefined && remainingIds.includes(defaultModel)
+        ? defaultModel
+        : remainingIds[0]
+    const newModel: ConfigModel = {
+      ...config.model,
+      [modality]: {
+        ...current,
+        models,
+        default_model: newDefault
+      }
+    }
+    deleting = true
+    message = null
+    try {
+      const updated = await configApi.updateConfig({ model: newModel })
+      config = updated
+      selectedModel = null
+      showDeleteConfirm = false
+      message = { type: 'success', text: '已删除该模型' }
+      log('已删除模型', { modality, id: idToDelete })
+    } catch (err) {
+      logError('删除模型失败', err)
+      message = { type: 'error', text: err instanceof Error ? err.message : '删除失败' }
+    } finally {
+      deleting = false
+    }
+  }
 </script>
 
 <div class="settings-page">
@@ -235,7 +286,7 @@
           <button type="button" class="btn model-list-btn" onclick={openModelList}>
             选择模型
           </button>
-          <button type="button" class="btn model-list-btn" onclick={() => { showAddModelForm = !showAddModelForm; addModelError = ''; }}>
+          <button type="button" class="btn model-list-btn" onclick={() => { showAddModelForm = !showAddModelForm; addModelError = ''; showModelListCard = false; }}>
             添加模型
           </button>
           {#if selectedModel}
@@ -313,7 +364,7 @@
           </div>
         {/if}
 
-        {#if selectedModel}
+        {#if selectedModel && !showAddModelForm}
           <div class="params-section">
             <label for="model-params-json" class="params-label">参数（JSON，平铺）</label>
             <textarea
@@ -331,6 +382,34 @@
               <button type="button" class="btn primary" disabled={saving} onclick={saveModelParams}>
                 {saving ? '保存中…' : '保存当前模型参数'}
               </button>
+              <button type="button" class="btn btn-danger" disabled={saving} onclick={openDeleteConfirm}>
+                删除该模型
+              </button>
+            </div>
+          </div>
+        {/if}
+
+        {#if showDeleteConfirm}
+          <div
+            class="model-list-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="确认删除模型"
+            tabindex="-1"
+            onclick={(e) => { if ((e.target as HTMLElement)?.classList?.contains('model-list-backdrop')) closeDeleteConfirm(); }}
+            onkeydown={(e) => { if (e.key === 'Escape') closeDeleteConfirm(); }}
+          >
+            <div class="model-list-card delete-confirm-card">
+              <div class="model-list-title">确认删除</div>
+              <p class="delete-confirm-text">
+                确定要删除模型「{selectedModel?.label}」吗？该模态下若无其他模型，将恢复默认配置。
+              </p>
+              <div class="params-actions delete-confirm-actions">
+                <button type="button" class="btn btn-danger" disabled={deleting} onclick={confirmDeleteModel}>
+                  {deleting ? '删除中…' : '确认删除'}
+                </button>
+                <button type="button" class="btn" disabled={deleting} onclick={closeDeleteConfirm}>取消</button>
+              </div>
             </div>
           </div>
         {/if}
@@ -661,6 +740,22 @@
     margin-bottom: 0.25rem;
   }
 
+  .delete-confirm-card {
+    min-width: 320px;
+  }
+
+  .delete-confirm-text {
+    margin: 0 0 1rem 0;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .delete-confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .ui-config {
     max-width: 480px;
   }
@@ -755,6 +850,16 @@
   .btn.primary:hover:not(:disabled) {
     filter: brightness(1.08);
     transform: translateY(-1px);
+  }
+
+  .btn.btn-danger {
+    background: var(--bg-elevated);
+    color: #ff8a80;
+    border: 1px solid rgba(255, 138, 128, 0.5);
+  }
+
+  .btn.btn-danger:hover:not(:disabled) {
+    background: rgba(255, 138, 128, 0.15);
   }
 
   .btn:disabled {

@@ -92,6 +92,10 @@
   let queryTaskError = $state('')
   /** 主动输入（JSON/根据任务 ID 查询）区域默认收起 */
   let showParamsPanel = $state(false)
+  /** 点击图片放大全屏时显示的 URL，null 表示关闭 */
+  let fullscreenImageUrl = $state<string | null>(null)
+  /** 全屏图片缩放倍数，1 = 适配视窗 */
+  let fullscreenImageScale = $state(1)
 
   const isTextMode = $derived(selectedModel.type === 'text')
   const isImageMode = $derived(selectedModel.type === 'image')
@@ -99,11 +103,21 @@
   const canSendImage = $derived(isTextMode || isVideoMode || isImageMode)
   const sendDisabled = $derived(false)
 
+  /** 由 $effect 触发的 loadMessages 使用此 controller，便于生图/视频流程中中止后再拉取最新消息 */
+  let effectLoadController: AbortController | null = null
+  /** 当前正在加载的 chatId，用于 effect 防重入：同一对话不重复发起加载，避免被 abort 后卡住 */
+  let loadingChatId: string | null = null
+
   $effect(() => {
-    if ($activeChatId) {
-      loadMessages($activeChatId)
+    const chatId = $activeChatId
+    if (chatId) {
+      if (loadingChatId === chatId) return
+      effectLoadController?.abort()
+      effectLoadController = new AbortController()
+      loadMessages(chatId, { signal: effectLoadController.signal })
     } else {
       messages = []
+      loadingChatId = null
     }
   })
 
@@ -136,6 +150,16 @@
     return () => el.removeEventListener('click', onCopyClick)
   })
 
+  $effect(() => {
+    if (!fullscreenImageUrl) return
+    fullscreenImageScale = 1
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') fullscreenImageUrl = null
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
+
   onMount(async () => {
     mermaid.initialize({
       startOnLoad: false,
@@ -152,17 +176,35 @@
     }
   })
 
-  async function loadMessages(chatId: string) {
+  async function loadMessages(
+    chatId: string,
+    options?: { signal?: AbortSignal }
+  ) {
     log('加载消息', { chatId })
     loading = true
+    loadingChatId = chatId
+    const safetyTimeout = setTimeout(() => {
+      if (loadingChatId === chatId) {
+        loading = false
+        loadingChatId = null
+      }
+    }, 18000)
     try {
-      messages = await chatApi.getMessages(chatId)
+      messages = await chatApi.getMessages(chatId, undefined, {
+        signal: options?.signal,
+        timeoutMs: 15000
+      })
       log('加载消息成功', { chatId, count: messages.length })
     } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') {
+        return
+      }
       logError('加载消息失败', err)
       messages = []
     } finally {
+      clearTimeout(safetyTimeout)
       loading = false
+      loadingChatId = null
     }
   }
 
@@ -265,14 +307,15 @@
         if (imageFile) imageBase64 = await fileToBase64(imageFile)
         const createRes = await imageApi.createImage({
           body: bodyFromJson ?? undefined,
+          model: selectedModel.id,
           prompt: content || (bodyFromJson?.prompt as string) || (imageFile ? '根据图片生成' : '生成图片'),
           image: imageBase64
         })
         const imageUrl = imageApi.getImageUrlFromResponse(createRes)
         if (!imageUrl) throw new Error('未返回图片地址')
         imageStatus = '正在写入对话…'
-        await chatApi.addImageResult($activeChatId, userContent, imageUrl)
-        await loadMessages($activeChatId)
+        const assistantMsg = await chatApi.addImageResult($activeChatId, userContent, imageUrl)
+        messages = [...messages, assistantMsg]
         inputText = ''
         imageFile = null
         imagePreview = null
@@ -310,8 +353,8 @@
         const writeTimeoutMs = 15000
         await Promise.race([
           (async () => {
-            await chatApi.addVideoResult($activeChatId, userContent, videoUrl)
-            await loadMessages($activeChatId)
+            const assistantMsg = await chatApi.addVideoResult($activeChatId, userContent, videoUrl)
+            messages = [...messages, assistantMsg]
           })(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('写入对话超时')), writeTimeoutMs))
         ])
@@ -429,8 +472,13 @@
 
   function isImageUrl(content: string): boolean {
     const s = content.trim()
+    if (!s) return false
     if (/^data:image\//i.test(s)) return true
-    if (/^https?:\/\//i.test(s) && /\.(png|jpe?g|gif|webp)(\?|$)/i.test(s)) return true
+    if (!/^https?:\/\//i.test(s)) return false
+    // 常见图片扩展名（含查询参数）
+    if (/\.(png|jpe?g|gif|webp)(\?|$)/i.test(s)) return true
+    // 常见图床/CDN 域名（如火山 tos、volces 等），无扩展名也视为图片
+    if (/(tos-cn|volces\.com|ark-content-generation)/i.test(s)) return true
     return false
   }
 
@@ -493,11 +541,24 @@
                   <span class="dot"></span><span class="dot"></span><span class="dot"></span>
                 </div>
               {:else if message.role === 'assistant' && isImageUrl(message.content)}
-                <p class="result-label">图片结果：</p>
-                <img src={message.content} alt="生成图片" class="message-result-image" />
-                <a href={message.content} target="_blank" rel="noopener noreferrer">打开原图</a>
+                <button type="button" class="message-result-image-btn" onclick={() => (fullscreenImageUrl = message.content)}>
+                  <img src={message.content} alt="生成图片" class="message-result-image" />
+                </button>
               {:else if message.role === 'assistant' && isUrl(message.content)}
-                <p>视频结果：<a href={message.content} target="_blank" rel="noopener noreferrer">{message.content}</a></p>
+                <div class="message-result-video-wrap">
+                  <!-- svelte-ignore a11y_media_has_caption -->
+                  <video
+                    class="message-result-video"
+                    src={message.content}
+                    controls
+                    preload="metadata"
+                    playsinline
+                  >
+                    您的浏览器不支持视频播放。
+                    <a href={message.content} target="_blank" rel="noopener noreferrer">打开原视频</a>
+                  </video>
+                  <a href={message.content} target="_blank" rel="noopener noreferrer" class="message-result-video-link">在新标签页打开</a>
+                </div>
               {:else if message.role === 'assistant'}
                 <div class="markdown-body">{@html markdownToHtml(message.content)}</div>
               {:else}
@@ -509,6 +570,34 @@
         {/each}
       {/if}
     </div>
+
+    <!-- 点击图片放大全屏：点击图片或背景关闭，支持缩放 -->
+    {#if fullscreenImageUrl}
+      <div
+        class="image-fullscreen-backdrop"
+        role="button"
+        tabindex="-1"
+        aria-label="关闭"
+        onclick={() => (fullscreenImageUrl = null)}
+        onkeydown={(e) => { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') fullscreenImageUrl = null }}
+      >
+        <div
+          class="image-fullscreen-content"
+          role="presentation"
+          onwheel={(e) => { e.preventDefault(); fullscreenImageScale = Math.max(0.25, Math.min(5, fullscreenImageScale + (e.deltaY > 0 ? -0.15 : 0.15))) }}
+        >
+          <div class="image-fullscreen-toolbar" role="toolbar" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+            <button type="button" class="image-fullscreen-zoom-btn" onclick={() => (fullscreenImageScale = Math.max(0.25, fullscreenImageScale - 0.25))} title="缩小">−</button>
+            <span class="image-fullscreen-scale-text">{Math.round(fullscreenImageScale * 100)}%</span>
+            <button type="button" class="image-fullscreen-zoom-btn" onclick={() => (fullscreenImageScale = Math.min(5, fullscreenImageScale + 0.25))} title="放大">+</button>
+            <button type="button" class="image-fullscreen-zoom-btn" onclick={() => (fullscreenImageScale = 1)} title="适应窗口">1:1</button>
+          </div>
+          <div class="image-fullscreen-wrap" style="transform: scale({fullscreenImageScale})">
+            <img src={fullscreenImageUrl} alt="大图预览" class="image-fullscreen-img" />
+          </div>
+        </div>
+      </div>
+    {/if}
 
     <div class="input-container">
       <div class="input-wrapper">
@@ -902,10 +991,6 @@
     border-bottom-color: currentColor;
   }
 
-  .message-content .result-label {
-    margin-bottom: 0.5rem;
-  }
-
   .message-content .markdown-body {
     width: 100%;
     min-width: 0;
@@ -1049,6 +1134,125 @@
     max-height: 320px;
     border-radius: 8px;
     margin-bottom: 0.5rem;
+  }
+
+  .message-result-image-btn {
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 8px;
+    line-height: 0;
+  }
+
+  .message-result-image-btn .message-result-image {
+    margin-bottom: 0;
+  }
+
+  .message-result-video-wrap {
+    display: block;
+    max-width: 100%;
+  }
+
+  .message-result-video {
+    display: block;
+    max-width: 100%;
+    max-height: 360px;
+    border-radius: 8px;
+    background: #000;
+  }
+
+  .message-result-video-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-brand);
+  }
+
+  .message-result-video-link:hover {
+    text-decoration: underline;
+  }
+
+  .image-fullscreen-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    cursor: pointer;
+    overflow: auto;
+  }
+
+  .image-fullscreen-content {
+    margin: auto;
+    max-width: calc(100vw - 4rem);
+    max-height: calc(100vh - 4rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: default;
+    min-height: 0;
+  }
+
+  .image-fullscreen-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .image-fullscreen-zoom-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .image-fullscreen-zoom-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .image-fullscreen-scale-text {
+    min-width: 3.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .image-fullscreen-wrap {
+    transform-origin: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .image-fullscreen-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    pointer-events: none;
   }
 
   .message-time {

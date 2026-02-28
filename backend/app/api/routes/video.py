@@ -40,11 +40,13 @@ async def create_video_task(request: VideoCreateRequest):
     }
     if request.image is not None:
         payload["image"] = request.image
+    logger.info("给 aiping 发送请求: url=%s body=%s", url, payload)
     timeout = aiohttp.ClientTimeout(total=settings.openai_timeout)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, headers=_headers(), json=payload) as response:
                 text = await response.text()
+                logger.info("收到 aiping 响应: status=%s body=%s", response.status, text or "(empty)")
                 if response.content_type and "application/json" in response.content_type and text:
                     try:
                         result = json.loads(text)
@@ -79,11 +81,13 @@ async def get_video_task_result(task_id: str, provider: str | None = None):
         )
     url = f"{settings.video_api_url}/{task_id}"
     params = {"provider": provider} if provider else None
+    logger.info("给 aiping 发送请求: url=%s params=%s", url, params)
     timeout = aiohttp.ClientTimeout(total=settings.openai_timeout)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url, headers=_headers(), params=params) as response:
                 text = await response.text()
+                logger.info("收到 aiping 响应: status=%s body=%s", response.status, text or "(empty)")
                 if response.content_type and "application/json" in response.content_type and text:
                     try:
                         result = json.loads(text)
